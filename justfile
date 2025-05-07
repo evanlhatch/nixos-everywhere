@@ -22,8 +22,8 @@ NIXOS_EVERYWHERE_REMOTE_URL := "https://raw.githubusercontent.com/evanlhatch/nix
 
 # Flake Source:
 # These define the default Flake to be deployed.
-DEFAULT_FLAKE_LOCATION      := "github:evanlhatch/k3s-nixos-config" # Default is now your specified remote GitHub Flake URL
-DEFAULT_FLAKE_ATTRIBUTE     := "hetznerK3sControlTemplate" # Default Flake attribute to deploy (e.g., a specific NixOS configuration)
+DEFAULT_FLAKE_LOCATION      := "github:evanlhatch/k3s-nixos-config" # Default is your specified remote GitHub Flake URL
+DEFAULT_FLAKE_ATTRIBUTE     := "hetznerK3sControlTemplate" # Default Flake attribute to deploy
 
 # Defaults for environment variables passed to nixos-everywhere.sh via cloud-init
 # These are used by the provision_hetzner_node.sh script when constructing the cloud-init payload.
@@ -32,6 +32,13 @@ DEFAULT_TARGET_HOSTNAME_BASE  := "nixos" # Used by provision_hetzner_node.sh if 
 DEFAULT_TARGET_TIMEZONE       := "Etc/UTC"
 DEFAULT_TARGET_LOCALE         := "en_US.UTF-8"
 DEFAULT_TARGET_STATE_VERSION  := "24.11"
+
+# Infisical Bootstrap Credentials (expected to be in .env via direnv, or passed to just)
+# These are passed to provision_hetzner_node.sh, then to cloud-init for nixos-everywhere.sh
+INFISICAL_BOOTSTRAP_CLIENT_ID_ENV     := env_var_or_default('INFISICAL_BOOTSTRAP_CLIENT_ID', '')
+INFISICAL_BOOTSTRAP_CLIENT_SECRET_ENV := env_var_or_default('INFISICAL_BOOTSTRAP_CLIENT_SECRET', '')
+INFISICAL_BOOTSTRAP_ADDRESS_ENV       := env_var_or_default('INFISICAL_BOOTSTRAP_ADDRESS', 'https://app.infisical.com')
+
 
 # --- Hidden Helper Recipe ---
 _fetch_hcloud_token:
@@ -57,17 +64,17 @@ _fetch_hcloud_token:
 #   server_name     - Unique name for the new server.
 #
 # OPTIONAL ARGUMENTS (see defaults above):
-#   flake_location  - URL or local path reference for the Flake (default is now your GitHub repo).
+#   flake_location  - URL for the Flake (default is your GitHub repo).
 #   flake_attribute - NixOS configuration attribute in the Flake (default: "hetznerK3sControlTemplate").
 #                     Can be set to "AUTO_HOSTNAME" for the helper script to use server_name.
-#   server_type, image, location, ssh_key_name, network, volume, firewall, placement_group, labels,
-#   nixos_channel (for nixos-everywhere.sh bootstrap), target_hostname (for nixos-everywhere.sh HOSTNAME_INIT).
+#   infisical_client_id, infisical_client_secret, infisical_address - For Infisical Agent bootstrap.
+#   ... (other server parameters like server_type, image, location, etc.) ...
 #
 # EXAMPLE USAGE:
 #   just create-server server_name="my-k3s-control-01"
 #   just create-server server_name="worker-bee" flake_attribute="hetznerK3sWorkerTemplate"
 #   just create-server server_name="dev-node" flake_location="github:myfork/myflake" flake_attribute="devConfig" server_type="cpx11"
-create-server server_name flake_location=DEFAULT_FLAKE_LOCATION flake_attribute=DEFAULT_FLAKE_ATTRIBUTE server_type=DEFAULT_SERVER_TYPE image=DEFAULT_SERVER_IMAGE location=DEFAULT_SERVER_LOCATION ssh_key_name=DEFAULT_SSH_KEY_NAME network=DEFAULT_PRIVATE_NETWORK volume=DEFAULT_VOLUME_NAME firewall=DEFAULT_FIREWALL_NAME placement_group=DEFAULT_PLACEMENT_GROUP labels=DEFAULT_LABELS nixos_channel=DEFAULT_TARGET_NIXOS_CHANNEL target_hostname="":
+create-server server_name flake_location=DEFAULT_FLAKE_LOCATION flake_attribute=DEFAULT_FLAKE_ATTRIBUTE server_type=DEFAULT_SERVER_TYPE image=DEFAULT_SERVER_IMAGE location=DEFAULT_SERVER_LOCATION ssh_key_name=DEFAULT_SSH_KEY_NAME network=DEFAULT_PRIVATE_NETWORK volume=DEFAULT_VOLUME_NAME firewall=DEFAULT_FIREWALL_NAME placement_group=DEFAULT_PLACEMENT_GROUP labels=DEFAULT_LABELS nixos_channel=DEFAULT_TARGET_NIXOS_CHANNEL target_hostname="" infisical_client_id=INFISICAL_BOOTSTRAP_CLIENT_ID_ENV infisical_client_secret=INFISICAL_BOOTSTRAP_CLIENT_SECRET_ENV infisical_address=INFISICAL_BOOTSTRAP_ADDRESS_ENV:
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -93,7 +100,7 @@ create-server server_name flake_location=DEFAULT_FLAKE_LOCATION flake_attribute=
 
     # Call the external helper script, passing all parameters
     # The helper script will handle default logic for optional cloud-init env vars
-    echo "Calling helper script: $HELPER_SCRIPT_PATH"
+    echo "Calling helper script: $HELPER_SCRIPT_PATH with Infisical bootstrap parameters"
     "$HELPER_SCRIPT_PATH" \
         "{{server_name}}" \
         "{{flake_location}}" \
@@ -114,14 +121,17 @@ create-server server_name flake_location=DEFAULT_FLAKE_LOCATION flake_attribute=
         "{{DEFAULT_TARGET_HOSTNAME_BASE}}" \
         "{{DEFAULT_TARGET_TIMEZONE}}" \
         "{{DEFAULT_TARGET_LOCALE}}" \
-        "{{DEFAULT_TARGET_STATE_VERSION}}"
+        "{{DEFAULT_TARGET_STATE_VERSION}}" \
+        "{{infisical_client_id}}" \
+        "{{infisical_client_secret}}" \
+        "{{infisical_address}}"
     # The exit code of the helper script will be the exit code of this recipe
 
 list-servers: _fetch_hcloud_token
     #!/usr/bin/env bash
     set -euo pipefail
     # Fetch token and set it for the hcloud command
-    HETZNER_API_TOKEN_VAL=$(just _fetch_hcloud_token) # Renamed to avoid conflict if _fetch_hcloud_token also sets HETZNER_API_TOKEN globally
+    HETZNER_API_TOKEN_VAL=$(just _fetch_hcloud_token)
     HCLOUD_TOKEN="$HETZNER_API_TOKEN_VAL" hcloud server list -o noheader -o columns=id,name,status,ipv4,ipv6,location,server_type
 
 default:
