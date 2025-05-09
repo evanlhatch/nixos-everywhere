@@ -1,0 +1,169 @@
+System information:
+Linux debian-test 6.1.0-34-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.135-1 (2025-04-25) x86_64 GNU/Linux
+\nDisk usage:
+Filesystem      Size  Used Avail Use% Mounted on
+udev            965M     0  965M   0% /dev
+tmpfs           197M  504K  197M   1% /run
+/dev/sda1        20G  1.5G   18G   8% /
+tmpfs           984M     0  984M   0% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+/dev/sda15      124M   12M  113M  10% /boot/efi
+tmpfs           197M     0  197M   0% /run/user/1000
+\nMemory usage:
+               total        used        free      shared  buff/cache   available
+Mem:           1.9Gi       214Mi       1.7Gi       504Ki       116Mi       1.7Gi
+Swap:             0B          0B          0B
+\nProcess list:
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.3  0.5 102168 12008 ?        Ss   09:03   0:02 /sbin/init
+root           2  0.0  0.0      0     0 ?        S    09:03   0:00 [kthreadd]
+root           3  0.0  0.0      0     0 ?        I<   09:03   0:00 [rcu_gp]
+root           4  0.0  0.0      0     0 ?        I<   09:03   0:00 [rcu_par_gp]
+root           5  0.0  0.0      0     0 ?        I<   09:03   0:00 [slub_flushwq]
+root           6  0.0  0.0      0     0 ?        I<   09:03   0:00 [netns]
+root          10  0.0  0.0      0     0 ?        I<   09:03   0:00 [mm_percpu_wq]
+root          11  0.0  0.0      0     0 ?        I    09:03   0:00 [rcu_tasks_kthread]
+root          12  0.0  0.0      0     0 ?        I    09:03   0:00 [rcu_tasks_rude_kthread]
+root          13  0.0  0.0      0     0 ?        I    09:03   0:00 [rcu_tasks_trace_kthread]
+root          14  0.0  0.0      0     0 ?        S    09:03   0:00 [ksoftirqd/0]
+root          15  0.1  0.0      0     0 ?        I    09:03   0:01 [rcu_preempt]
+root          16  0.0  0.0      0     0 ?        S    09:03   0:00 [migration/0]
+root          17  0.0  0.0      0     0 ?        I    09:03   0:00 [kworker/0:1-events]
+root          18  0.0  0.0      0     0 ?        S    09:03   0:00 [cpuhp/0]
+root          19  0.0  0.0      0     0 ?        S    09:03   0:00 [cpuhp/1]
+root          20  0.0  0.0      0     0 ?        S    09:03   0:00 [migration/1]
+root          21  0.0  0.0      0     0 ?        S    09:03   0:00 [ksoftirqd/1]
+root          23  0.0  0.0      0     0 ?        I<   09:03   0:00 [kworker/1:0H-events_highpri]
+root          25  0.0  0.0      0     0 ?        I    09:03   0:00 [kworker/u4:1-flush-8:0]
+root          26  0.0  0.0      0     0 ?        S    09:03   0:00 [kdevtmpfs]
+root          27  0.0  0.0      0     0 ?        I<   09:03   0:00 [inet_frag_wq]
+root          28  0.0  0.0      0     0 ?        S    09:03   0:00 [kauditd]
+root          29  0.0  0.0      0     0 ?        S    09:03   0:00 [khungtaskd]
+root          30  0.0  0.0      0     0 ?        S    09:03   0:00 [oom_reaper]
+root          32  0.0  0.0      0     0 ?        I<   09:03   0:00 [writeback]
+root          33  0.0  0.0      0     0 ?        S    09:03   0:00 [kcompactd0]
+root          34  0.0  0.0      0     0 ?        SN   09:03   0:00 [ksmd]
+root          35  0.1  0.0      0     0 ?        I    09:03   0:01 [kworker/1:1-events]
+root          36  0.0  0.0      0     0 ?        SN   09:03   0:00 [khugepaged]
+root          37  0.0  0.0      0     0 ?        I<   09:03   0:00 [kintegrityd]
+root          38  0.0  0.0      0     0 ?        I<   09:03   0:00 [kblockd]
+root          39  0.0  0.0      0     0 ?        I<   09:03   0:00 [blkcg_punt_bio]
+root          40  0.0  0.0      0     0 ?        I<   09:03   0:00 [tpm_dev_wq]
+root          41  0.0  0.0      0     0 ?        I<   09:03   0:00 [edac-poller]
+root          42  0.0  0.0      0     0 ?        I<   09:03   0:00 [devfreq_wq]
+root          43  0.0  0.0      0     0 ?        I<   09:03   0:00 [kworker/0:1H-kblockd]
+root          44  0.0  0.0      0     0 ?        S    09:03   0:00 [kswapd0]
+root          50  0.0  0.0      0     0 ?        I<   09:03   0:00 [kthrotld]
+root          52  0.0  0.0      0     0 ?        I<   09:03   0:00 [acpi_thermal_pm]
+root          54  0.0  0.0      0     0 ?        I<   09:03   0:00 [mld]
+root          55  0.0  0.0      0     0 ?        I<   09:03   0:00 [kworker/1:1H-kblockd]
+root          56  0.0  0.0      0     0 ?        I<   09:03   0:00 [ipv6_addrconf]
+root          61  0.0  0.0      0     0 ?        I<   09:03   0:00 [kstrp]
+root          66  0.0  0.0      0     0 ?        I<   09:03   0:00 [zswap-shrink]
+root          67  0.0  0.0      0     0 ?        I<   09:03   0:00 [kworker/u5:0]
+root         129  0.0  0.0      0     0 ?        I<   09:03   0:00 [ata_sff]
+root         130  0.0  0.0      0     0 ?        S    09:03   0:00 [scsi_eh_0]
+root         131  0.0  0.0      0     0 ?        I<   09:03   0:00 [scsi_tmf_0]
+root         132  0.0  0.0      0     0 ?        S    09:03   0:00 [scsi_eh_1]
+root         133  0.0  0.0      0     0 ?        I<   09:03   0:00 [scsi_tmf_1]
+root         134  0.0  0.0      0     0 ?        I    09:03   0:00 [kworker/u4:3-flush-8:0]
+root         141  0.0  0.0      0     0 ?        I<   09:03   0:00 [kworker/0:2H-kblockd]
+root         159  0.0  0.0      0     0 ?        S    09:03   0:00 [jbd2/sda1-8]
+root         160  0.0  0.0      0     0 ?        I<   09:03   0:00 [ext4-rsv-conver]
+root         230  0.1  0.7  41884 14708 ?        Ss   09:03   0:00 /lib/systemd/systemd-journald
+root         236  0.0  0.0      0     0 ?        I    09:03   0:00 [kworker/1:3-events]
+root         245  0.0  0.0      0     0 ?        I    09:03   0:00 [kworker/0:3-events]
+root         254  0.0  0.3  26660  6116 ?        Ss   09:03   0:00 /lib/systemd/systemd-udevd
+systemd+     292  0.0  0.5  20620 11568 ?        Ss   09:03   0:00 /lib/systemd/systemd-resolved
+systemd+     295  0.0  0.3  90236  6872 ?        Ssl  09:03   0:00 /lib/systemd/systemd-timesyncd
+systemd+     315  0.0  0.4  18044  8548 ?        Ss   09:03   0:00 /lib/systemd/systemd-networkd
+root         317  0.0  0.0      0     0 ?        I<   09:03   0:00 [cfg80211]
+message+     353  0.2  0.2   8088  4172 ?        Ss   09:03   0:01 /usr/bin/dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only
+root         356  0.1  0.3  16856  7724 ?        Ss   09:03   0:00 /lib/systemd/systemd-logind
+root         358  0.0  0.0   2896  1052 tty1     Ss+  09:03   0:00 /sbin/agetty -o -p -- \u --noclear - linux
+root         359  0.0  0.0   2940  1020 ttyS0    Ss+  09:03   0:00 /sbin/agetty -o -p -- \u --keep-baud 115200,57600,38400,9600 - vt220
+root         363  0.0  0.4  15436  9232 ?        Ss   09:03   0:00 sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+root         364  0.0  0.9  28744 18964 ?        Ss   09:03   0:00 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+root         386  0.0  0.0      0     0 ?        I    09:08   0:00 [kworker/0:0-events]
+root         387  0.0  0.0      0     0 ?        I    09:08   0:00 [kworker/u4:0-writeback]
+root         419  0.0  0.0      0     0 ?        I    09:09   0:00 [kworker/1:0-events]
+root         490  0.0  0.0      0     0 ?        I    09:10   0:00 [kworker/1:2-cgroup_destroy]
+root         508  0.0  0.0      0     0 ?        I    09:10   0:00 [kworker/0:2-cgroup_destroy]
+root         523  0.0  0.0      0     0 ?        I    09:10   0:00 [kworker/u4:2-events_unbound]
+root         561  0.0  0.0      0     0 ?        I    09:10   0:00 [kworker/0:4-cgroup_destroy]
+debian       960  1.8  0.4  18768  9688 ?        Ss   09:14   0:00 /lib/systemd/systemd --user
+debian       961  0.0  0.1 102908  3084 ?        S    09:14   0:00 (sd-pam)
+root        1007  4.9  0.5  17288 10644 ?        Ss   09:14   0:00 sshd: debian [priv]
+debian      1014  0.0  0.3  17548  6384 ?        S    09:14   0:00 sshd: debian@notty
+debian      1015  100  0.2   8536  4172 ?        Rs   09:14   0:00 ps aux
+\nNetwork interfaces:
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host noprefixroute 
+       valid_lft forever preferred_lft forever
+2: ens3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 52:54:00:12:34:56 brd ff:ff:ff:ff:ff:ff
+    altname enp0s3
+    inet 10.0.2.15/24 metric 100 brd 10.0.2.255 scope global dynamic ens3
+       valid_lft 85721sec preferred_lft 85721sec
+    inet6 fec0::5054:ff:fe12:3456/64 scope site dynamic mngtmpaddr noprefixroute 
+       valid_lft 86233sec preferred_lft 14233sec
+    inet6 fe80::5054:ff:fe12:3456/64 scope link 
+       valid_lft forever preferred_lft forever
+\nNix status:
+Nix not installed
+\nNixOS configuration:
+NixOS configuration not found
+\nCloud-init logs:
+ci-info: |   1   |   10.0.2.0  | 0.0.0.0  |  255.255.255.0  |    ens3   |   U   |
+ci-info: |   2   |   10.0.2.2  | 0.0.0.0  | 255.255.255.255 |    ens3   |   UH  |
+ci-info: |   3   |   10.0.2.3  | 0.0.0.0  | 255.255.255.255 |    ens3   |   UH  |
+ci-info: +-------+-------------+----------+-----------------+-----------+-------+
+ci-info: +++++++++++++++++++Route IPv6 info+++++++++++++++++++
+ci-info: +-------+-------------+---------+-----------+-------+
+ci-info: | Route | Destination | Gateway | Interface | Flags |
+ci-info: +-------+-------------+---------+-----------+-------+
+ci-info: |   0   |  fe80::/64  |    ::   |    ens3   |   U   |
+ci-info: |   2   |    local    |    ::   |    ens3   |   U   |
+ci-info: |   3   |  multicast  |    ::   |    ens3   |   U   |
+ci-info: +-------+-------------+---------+-----------+-------+
+Cloud-init v. 22.4.2 running 'modules:config' at Wed, 07 May 2025 08:06:29 +0000. Up 7.40 seconds.
+Cloud-init v. 22.4.2 running 'modules:final' at Wed, 07 May 2025 08:06:29 +0000. Up 7.62 seconds.
+Cloud-init v. 22.4.2 finished at Wed, 07 May 2025 08:06:29 +0000. Datasource DataSourceNoCloud [seed=/dev/sdb][dsmode=net].  Up 7.67 seconds
+Cloud-init v. 22.4.2 running 'single' at Wed, 07 May 2025 08:09:13 +0000. Up 170.11 seconds.
+Cloud-init v. 22.4.2 running 'single' at Wed, 07 May 2025 08:39:53 +0000. Up 2010.81 seconds.
+Cloud-init v. 22.4.2 running 'single' at Wed, 07 May 2025 08:42:02 +0000. Up 2139.68 seconds.
+Cloud-init v. 22.4.2 running 'init-local' at Wed, 07 May 2025 09:03:24 +0000. Up 5.63 seconds.
+Cloud-init v. 22.4.2 running 'init' at Wed, 07 May 2025 09:03:28 +0000. Up 10.14 seconds.
+ci-info: ++++++++++++++++++++++++++++++++++++++Net device info++++++++++++++++++++++++++++++++++++++
+ci-info: +--------+------+----------------------------+---------------+--------+-------------------+
+ci-info: | Device |  Up  |          Address           |      Mask     | Scope  |     Hw-Address    |
+ci-info: +--------+------+----------------------------+---------------+--------+-------------------+
+ci-info: |  ens3  | True |         10.0.2.15          | 255.255.255.0 | global | 52:54:00:12:34:56 |
+ci-info: |  ens3  | True | fe80::5054:ff:fe12:3456/64 |       .       |  link  | 52:54:00:12:34:56 |
+ci-info: |   lo   | True |         127.0.0.1          |   255.0.0.0   |  host  |         .         |
+ci-info: |   lo   | True |          ::1/128           |       .       |  host  |         .         |
+ci-info: +--------+------+----------------------------+---------------+--------+-------------------+
+ci-info: ++++++++++++++++++++++++++++Route IPv4 info+++++++++++++++++++++++++++++
+ci-info: +-------+-------------+----------+-----------------+-----------+-------+
+ci-info: | Route | Destination | Gateway  |     Genmask     | Interface | Flags |
+ci-info: +-------+-------------+----------+-----------------+-----------+-------+
+ci-info: |   0   |   0.0.0.0   | 10.0.2.2 |     0.0.0.0     |    ens3   |   UG  |
+ci-info: |   1   |   10.0.2.0  | 0.0.0.0  |  255.255.255.0  |    ens3   |   U   |
+ci-info: |   2   |   10.0.2.2  | 0.0.0.0  | 255.255.255.255 |    ens3   |   UH  |
+ci-info: |   3   |   10.0.2.3  | 0.0.0.0  | 255.255.255.255 |    ens3   |   UH  |
+ci-info: +-------+-------------+----------+-----------------+-----------+-------+
+ci-info: +++++++++++++++++++Route IPv6 info+++++++++++++++++++
+ci-info: +-------+-------------+---------+-----------+-------+
+ci-info: | Route | Destination | Gateway | Interface | Flags |
+ci-info: +-------+-------------+---------+-----------+-------+
+ci-info: |   0   |  fe80::/64  |    ::   |    ens3   |   U   |
+ci-info: |   2   |    local    |    ::   |    ens3   |   U   |
+ci-info: |   3   |  multicast  |    ::   |    ens3   |   U   |
+ci-info: +-------+-------------+---------+-----------+-------+
+Cloud-init v. 22.4.2 running 'modules:config' at Wed, 07 May 2025 09:03:29 +0000. Up 10.82 seconds.
+Cloud-init v. 22.4.2 running 'modules:final' at Wed, 07 May 2025 09:03:29 +0000. Up 11.23 seconds.
+Cloud-init v. 22.4.2 finished at Wed, 07 May 2025 09:03:29 +0000. Datasource DataSourceNoCloud [seed=/dev/sdb][dsmode=net].  Up 11.34 seconds
+Cloud-init v. 22.4.2 running 'single' at Wed, 07 May 2025 09:09:55 +0000. Up 395.25 seconds.

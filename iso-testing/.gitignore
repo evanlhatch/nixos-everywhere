@@ -1,0 +1,19 @@
+# VM disk images
+*.qcow2
+*.img
+*.iso
+
+# Cloud-init files
+cloud-init/
+
+# Generated SSH keys
+vm_key
+vm_key.pub
+
+# Temporary files
+*.tmp
+*.log
+
+# nixos-everywhere test files
+nixos-everywhere.sh
+nixos-everywhere-cloud-init.yaml

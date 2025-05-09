@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
+set -x
 # provision_hetzner_node.sh
 # Version: 1.1.0
 # Helper script called by Justfile to provision a Hetzner server.
@@ -35,20 +35,20 @@ ARG_NETWORK="$8"                 # Optional: Name of an existing private network
 ARG_VOLUME="$9"                  # Optional: Name of an existing volume
 ARG_FIREWALL="${10}"             # Optional: Name of an existing firewall
 ARG_PLACEMENT_GROUP="${11}"      # Optional: Name of an existing placement group
-ARG_LABELS_STR="${12}"
-ARG_NIXOS_CHANNEL="${13}"        # For nixos-everywhere.sh bootstrap phase
+ARG_LABELS_STR="${12}" # Labels for the server
+ARG_NIXOS_CHANNEL="${13}" # For nixos-everywhere.sh bootstrap phase
 ARG_TARGET_HOSTNAME_PARAM="${14}" # User's desired hostname for the OS, can be same as ARG_SERVER_NAME
 NIXOS_EVERYWHERE_LOCAL_PATH="${15}" # Path to local nixos-everywhere.sh (if embedding)
 NIXOS_EVERYWHERE_REMOTE_URL="${16}" # URL to remote nixos-everywhere.sh (if downloading)
-DEFAULT_TARGET_HOSTNAME_BASE="${17}"# Fallback base for HOSTNAME_INIT
-DEFAULT_TARGET_TIMEZONE="${18}"     # For HOSTNAME_INIT in cloud-init
-DEFAULT_TARGET_LOCALE="${19}"       # For HOSTNAME_INIT in cloud-init
-DEFAULT_TARGET_STATE_VERSION="${20}"# For HOSTNAME_INIT in cloud-init
+DEFAULT_TARGET_HOSTNAME_BASE="${17}" # Fallback base for HOSTNAME_INIT
+DEFAULT_TARGET_TIMEZONE="${18}" # For cloud-init environment variables
+DEFAULT_TARGET_LOCALE="${19}" # For cloud-init environment variables
+DEFAULT_TARGET_STATE_VERSION="${20}" # For cloud-init environment variables
 
 # NEW: Infisical Bootstrap Credentials
-ARG_INFISICAL_CLIENT_ID="${21}"
-ARG_INFISICAL_CLIENT_SECRET="${22}"
-ARG_INFISICAL_ADDRESS="${23}"
+ARG_INFISICAL_CLIENT_ID="${21}" # Infisical client ID for bootstrap
+ARG_INFISICAL_CLIENT_SECRET="${22}" # Infisical client secret for bootstrap
+ARG_INFISICAL_ADDRESS="${23}" # Infisical address for bootstrap
 
 
 log "INFO" "--- provision_hetzner_node.sh (v1.1.0) started with $# arguments ---"

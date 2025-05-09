@@ -1,0 +1,177 @@
+# Justfile for testing nixos-everywhere in a VM environment
+# This allows safely testing the script without affecting the host system
+
+# Default variables
+VM_NAME := "nixos-everywhere-test"
+VM_MEMORY := "2048"
+VM_CPUS := "2"
+VM_DIR := justfile_directory()
+DEBIAN_CLOUD_IMAGE_URL := "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2"
+DEBIAN_CLOUD_IMAGE := VM_DIR / "debian-12-generic-amd64.qcow2"
+VM_DISK := VM_DIR / VM_NAME + ".qcow2"
+CLOUD_INIT_ISO := VM_DIR / "cloud-init-config.iso"
+SSH_PORT := "2222"
+SCRIPTS_DIR := VM_DIR / "scripts"
+LOG_DIR := VM_DIR / "logs"
+DEBUG_DIR := LOG_DIR / "debug"
+VERBOSE := "1"  # Always run in verbose mode
+
+# Default recipe shows help
+default:
+    @just --list
+
+# Check dependencies and show installation instructions if missing
+check-deps:
+    {{SCRIPTS_DIR}}/check-deps.sh
+
+# Setup the VM environment (download image, create disk, etc.)
+setup: check-deps
+    {{SCRIPTS_DIR}}/setup.sh {{VM_DIR}} {{DEBIAN_CLOUD_IMAGE}} {{VM_DISK}} {{DEBIAN_CLOUD_IMAGE_URL}}
+    @mkdir -p {{LOG_DIR}} {{DEBUG_DIR}}
+
+# Create cloud-init configuration
+create-cloud-init: check-deps
+    {{SCRIPTS_DIR}}/create-cloud-init.sh {{VM_DIR}} {{CLOUD_INIT_ISO}}
+
+# Start the VM
+start-vm: check-deps
+    {{SCRIPTS_DIR}}/start-vm.sh {{VM_DIR}} {{VM_DISK}} {{CLOUD_INIT_ISO}} {{VM_MEMORY}} {{VM_CPUS}} {{SSH_PORT}}
+
+# Prepare nixos-everywhere test
+prepare-test: check-deps
+    {{SCRIPTS_DIR}}/prepare-test.sh {{VM_DIR}}
+
+# Run nixos-everywhere inside the VM
+run-test: check-deps
+    {{SCRIPTS_DIR}}/run-test.sh {{VM_DIR}} {{SSH_PORT}} "no"
+
+# Run nixos-everywhere inside the VM with reset (cleans up previous installation artifacts)
+run-test-reset: check-deps
+    {{SCRIPTS_DIR}}/run-test.sh {{VM_DIR}} {{SSH_PORT}} "yes"
+
+# Clean up all generated files
+clean:
+    {{SCRIPTS_DIR}}/clean.sh {{VM_DIR}} {{VM_NAME}}
+    @rm -rf {{LOG_DIR}}
+
+# View the main nixos-everywhere log file
+view-log:
+    @if [ -f "{{LOG_DIR}}/nixos-everywhere-vm.log" ]; then \
+        less "{{LOG_DIR}}/nixos-everywhere-vm.log"; \
+    else \
+        echo "Log file not found. Run 'just run-test' first."; \
+    fi
+
+# View the detailed debug log
+view-debug-log:
+    @if [ -f "{{DEBUG_DIR}}/nixos-everywhere.log" ]; then \
+        less "{{DEBUG_DIR}}/nixos-everywhere.log"; \
+    else \
+        echo "Debug log file not found. Run 'just run-test' first."; \
+    fi
+
+# View the NixOS configuration
+view-nixos-config:
+    @if [ -f "{{LOG_DIR}}/nixos-config/configuration.nix" ]; then \
+        cat "{{LOG_DIR}}/nixos-config/configuration.nix"; \
+    else \
+        echo "NixOS configuration not found. Run 'just run-test' first."; \
+    fi
+
+# SSH into the VM
+ssh-vm:
+    @if ssh -p {{SSH_PORT}} -o ConnectTimeout=5 -o StrictHostKeyChecking=no debian@localhost echo "VM is running" &>/dev/null; then \
+        ssh -p {{SSH_PORT}} -o StrictHostKeyChecking=no debian@localhost; \
+    else \
+        echo "Error: Cannot connect to VM. Please make sure the VM is running with 'just start-vm'."; \
+        exit 1; \
+    fi
+
+# Check VM status
+vm-status:
+    @if ssh -p {{SSH_PORT}} -o ConnectTimeout=5 -o StrictHostKeyChecking=no debian@localhost echo "VM is running" &>/dev/null; then \
+        echo "✅ VM is running"; \
+        echo "Checking for Nix..."; \
+        if ssh -p {{SSH_PORT}} -o StrictHostKeyChecking=no debian@localhost "command -v nix" &>/dev/null; then \
+            echo "✅ Nix is installed"; \
+            ssh -p {{SSH_PORT}} -o StrictHostKeyChecking=no debian@localhost "nix --version"; \
+        else \
+            echo "❌ Nix is not installed"; \
+        fi; \
+        echo "Checking for NixOS configuration..."; \
+        if ssh -p {{SSH_PORT}} -o StrictHostKeyChecking=no debian@localhost "sudo test -f /etc/nixos/configuration.nix" &>/dev/null; then \
+            echo "✅ NixOS configuration exists"; \
+        else \
+            echo "❌ NixOS configuration does not exist"; \
+        fi; \
+        echo "Disk usage:"; \
+        ssh -p {{SSH_PORT}} -o StrictHostKeyChecking=no debian@localhost "df -h"; \
+        echo "Memory usage:"; \
+        ssh -p {{SSH_PORT}} -o StrictHostKeyChecking=no debian@localhost "free -h"; \
+    else \
+        echo "❌ VM is not running. Start it with 'just start-vm'."; \
+        exit 1; \
+    fi
+
+# Full test workflow
+full-test: setup create-cloud-init prepare-test
+    @echo "====================================================="
+    @echo "Test environment is ready. To complete the test:"
+    @echo "1. Run 'just start-vm' to start the VM"
+    @echo "2. Wait for VM to boot completely (may take a minute)"
+    @echo "3. In another terminal, run 'just run-test' to execute nixos-everywhere INSIDE the VM"
+    @echo "   Or run 'just run-test-reset' to clean up previous installation artifacts first"
+    @echo ""
+    @echo "⚠️ IMPORTANT: nixos-everywhere will ONLY run inside the VM, not on your host system."
+    @echo "====================================================="
+
+# Reset the VM to a clean state without rebuilding it
+reset-vm: check-deps
+    @echo "Resetting VM to a clean state..."
+    @if ssh -p {{SSH_PORT}} -o ConnectTimeout=5 -o StrictHostKeyChecking=no debian@localhost echo "VM is running" &>/dev/null; then \
+        ssh -p {{SSH_PORT}} -o StrictHostKeyChecking=no debian@localhost "sudo bash -c ' \
+            rm -f /etc/bash.bashrc.backup-before-nix /etc/profile.d/nix.sh.backup-before-nix /etc/zshrc.backup-before-nix; \
+            rm -f /tmp/nixos-everywhere*.sh /tmp/nixos-everywhere*.log; \
+            rm -rf /tmp/nixos-everywhere-debug; \
+            rm -rf /etc/nixos/*; \
+            systemctl stop nix-daemon.socket nix-daemon.service || true; \
+            echo \"VM environment reset complete\"'"; \
+    else \
+        echo "Error: Cannot connect to VM. Please make sure the VM is running with 'just start-vm'."; \
+        exit 1; \
+    fi
+
+# Run a complete test cycle (reset, prepare, run)
+test-cycle: reset-vm prepare-test run-test-reset
+    @echo "Test cycle completed."
+    @echo "Run 'just view-log' to see the output log."
+    @echo "Run 'just view-debug-log' to see the detailed debug log."
+    @echo "Run 'just vm-status' to check the VM status."
+
+# Debug the VM
+debug-vm:
+    @echo "Collecting debug information from VM..."
+    @if ssh -p {{SSH_PORT}} -o ConnectTimeout=5 -o StrictHostKeyChecking=no debian@localhost echo "VM is running" &>/dev/null; then \
+        mkdir -p {{DEBUG_DIR}}; \
+        echo "System information:" > {{DEBUG_DIR}}/system-info.txt; \
+        ssh -p {{SSH_PORT}} -o StrictHostKeyChecking=no debian@localhost "uname -a" >> {{DEBUG_DIR}}/system-info.txt; \
+        echo "\nDisk usage:" >> {{DEBUG_DIR}}/system-info.txt; \
+        ssh -p {{SSH_PORT}} -o StrictHostKeyChecking=no debian@localhost "df -h" >> {{DEBUG_DIR}}/system-info.txt; \
+        echo "\nMemory usage:" >> {{DEBUG_DIR}}/system-info.txt; \
+        ssh -p {{SSH_PORT}} -o StrictHostKeyChecking=no debian@localhost "free -h" >> {{DEBUG_DIR}}/system-info.txt; \
+        echo "\nProcess list:" >> {{DEBUG_DIR}}/system-info.txt; \
+        ssh -p {{SSH_PORT}} -o StrictHostKeyChecking=no debian@localhost "ps aux" >> {{DEBUG_DIR}}/system-info.txt; \
+        echo "\nNetwork interfaces:" >> {{DEBUG_DIR}}/system-info.txt; \
+        ssh -p {{SSH_PORT}} -o StrictHostKeyChecking=no debian@localhost "ip addr" >> {{DEBUG_DIR}}/system-info.txt; \
+        echo "\nNix status:" >> {{DEBUG_DIR}}/system-info.txt; \
+        ssh -p {{SSH_PORT}} -o StrictHostKeyChecking=no debian@localhost "command -v nix && nix --version || echo 'Nix not installed'" >> {{DEBUG_DIR}}/system-info.txt; \
+        echo "\nNixOS configuration:" >> {{DEBUG_DIR}}/system-info.txt; \
+        ssh -p {{SSH_PORT}} -o StrictHostKeyChecking=no debian@localhost "sudo test -f /etc/nixos/configuration.nix && sudo cat /etc/nixos/configuration.nix || echo 'NixOS configuration not found'" >> {{DEBUG_DIR}}/system-info.txt; \
+        echo "\nCloud-init logs:" >> {{DEBUG_DIR}}/system-info.txt; \
+        ssh -p {{SSH_PORT}} -o StrictHostKeyChecking=no debian@localhost "sudo tail -n 50 /var/log/cloud-init-output.log" >> {{DEBUG_DIR}}/system-info.txt; \
+        echo "Debug information saved to {{DEBUG_DIR}}/system-info.txt"; \
+        echo "Run 'cat {{DEBUG_DIR}}/system-info.txt' to view the debug information."; \
+    else \
+        echo "Error: Cannot connect to VM. Please make sure the VM is running with 'just start-vm'."; \
+        exit 1; \
+    fi
