@@ -16,7 +16,7 @@ log() {
 # --- Parameters expected from Justfile (Positional) ---
 # This script now expects 24 arguments if Infisical creds are passed.
 # Adjust the check if you decide not to pass Infisical creds directly as args here.
-EXPECTED_ARGS=25 # 20 original + 3 for Infisical bootstrap + 1 for enable_ipv4
+EXPECTED_ARGS=24 # 20 original + 3 for Infisical bootstrap + 1 for enable_ipv4
 if [[ "$#" -ne "$EXPECTED_ARGS" ]]; then
     log "FATAL" "Incorrect number of arguments. Expected ${EXPECTED_ARGS}, got $#."
     log "FATAL" "Arguments received: $*"
@@ -50,7 +50,6 @@ ARG_INFISICAL_CLIENT_ID="${21}" # Infisical client ID for bootstrap
 ARG_INFISICAL_CLIENT_SECRET="${22}" # Infisical client secret for bootstrap
 ARG_INFISICAL_ADDRESS="${23}" # Infisical address for bootstrap
 ARG_ENABLE_IPV4="${24}" # Whether to enable IPv4 for the server
-ARG_TEMP_ROOT_PASSWORD="${25}" # Temporary root password for cloud-init
 
 
 log "INFO" "--- provision_hetzner_node.sh (v1.1.0) started with $# arguments ---"
@@ -212,12 +211,6 @@ EOF_SSH_SETUP
 
 USER_DATA_CONTENT=$(cat <<EOF_USER_DATA
 #cloud-config
-users:
-  - name: root
-    ssh_authorized_keys:
-      - ${SSH_PUBLIC_KEY_CONTENT}
-${PASSWORD_CONFIG}
-
 runcmd:
   - |
     # This whole block is executed by cloud-init on the new server
@@ -271,8 +264,8 @@ fi
 if [[ "$ARG_ENABLE_IPV4" == "true" ]]; then
     log "INFO" "IPv4 is enabled for this server."
 else
-    HCLOUD_SERVER_CREATE_ARGS_ARRAY+=(--without-ipv4)
-    log "INFO" "Using '--without-ipv4' flag for hcloud server create. IPv4 is disabled."
+    HCLOUD_SERVER_CREATE_ARGS_ARRAY+=(--disable-public-ipv4)
+    log "INFO" "Using '--disable-public-ipv4' flag for hcloud server create. IPv4 is disabled."
 fi
 
 
@@ -284,14 +277,6 @@ if hcloud server create "${HCLOUD_SERVER_CREATE_ARGS_ARRAY[@]}" --user-data-from
     # ... (rest of success logging as before)
     NIXOS_EVERYWHERE_EXPECTED_LOG_ON_SERVER="/var/log/nixos-everywhere.log" # Default from nixos-everywhere.sh internal var
     log "INFO" "Monitor progress via Hetzner Cloud console and server logs (e.g., /var/log/cloud-init-output.log on the server, then ${NIXOS_EVERYWHERE_EXPECTED_LOG_ON_SERVER} once NixOS is up)."
-    # Get IP address
-    SERVER_IP=$(hcloud server ip "$ARG_SERVER_NAME")
-    log "INFO" "Server '$ARG_SERVER_NAME' created with IP: $SERVER_IP"
-    if [[ -n "$ARG_TEMP_ROOT_PASSWORD" ]]; then
-        log "INFO" "You can connect with: ssh root@$SERVER_IP (password: $ARG_TEMP_ROOT_PASSWORD)"
-    else
-        log "INFO" "You can connect with: ssh root@$SERVER_IP"
-    fi
 
 else
     SERVER_CREATE_STATUS=$?
@@ -300,6 +285,3 @@ else
 fi
 
 log "INFO" "--- provision_hetzner_node.sh finished successfully ---"
-
-)
-fi

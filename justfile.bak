@@ -76,7 +76,6 @@ _fetch_hcloud_token:
 #   just create-server server_name="worker-bee" flake_attribute="hetznerK3sWorkerTemplate"
 #   just create-server server_name="dev-node" flake_location="github:myfork/myflake" flake_attribute="devConfig" server_type="cpx11"
 #   just create-server server_name="ipv4-server" enable_ipv4=true
-        temp_root_password={{temp_root_password}}
 create-server server_name flake_location=DEFAULT_FLAKE_LOCATION flake_attribute=DEFAULT_FLAKE_ATTRIBUTE server_type=DEFAULT_SERVER_TYPE image=DEFAULT_SERVER_IMAGE location=DEFAULT_SERVER_LOCATION ssh_key_name=DEFAULT_SSH_KEY_NAME network=DEFAULT_PRIVATE_NETWORK volume=DEFAULT_VOLUME_NAME firewall=DEFAULT_FIREWALL_NAME placement_group=DEFAULT_PLACEMENT_GROUP labels=DEFAULT_LABELS nixos_channel=DEFAULT_TARGET_NIXOS_CHANNEL target_hostname="" infisical_client_id=INFISICAL_BOOTSTRAP_CLIENT_ID_ENV infisical_client_secret=INFISICAL_BOOTSTRAP_CLIENT_SECRET_ENV infisical_address=INFISICAL_BOOTSTRAP_ADDRESS_ENV enable_ipv4="false":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -105,30 +104,30 @@ create-server server_name flake_location=DEFAULT_FLAKE_LOCATION flake_attribute=
     # The helper script will handle default logic for optional cloud-init env vars
     echo "Calling helper script: $HELPER_SCRIPT_PATH with Infisical bootstrap parameters"
     "$HELPER_SCRIPT_PATH" \
-        {{server_name}} \
-        {{flake_location}} \
-        {{flake_attribute}} \
-        {{server_type}} \
-        {{image}} \
-        {{location}} \
-        {{ssh_key_name}} \
-        {{network}} \
-        {{volume}} \
-        {{firewall}} \
-        {{placement_group}} \
-        {{labels}} \
-        {{nixos_channel}} \
-        {{target_hostname}} \
+        "{{server_name}}" \
+        "{{flake_location}}" \
+        "{{flake_attribute}}" \
+        "{{server_type}}" \
+        "{{image}}" \
+        "{{location}}" \
+        "{{ssh_key_name}}" \
+        "{{network}}" \
+        "{{volume}}" \
+        "{{firewall}}" \
+        "{{placement_group}}" \
+        "{{labels}}" \
+        "{{nixos_channel}}" \
+        "{{target_hostname}}" \
         "{{NIXOS_EVERYWHERE_LOCAL_PATH}}" \
         "{{NIXOS_EVERYWHERE_REMOTE_URL}}" \
         "{{DEFAULT_TARGET_HOSTNAME_BASE}}" \
         "{{DEFAULT_TARGET_TIMEZONE}}" \
         "{{DEFAULT_TARGET_LOCALE}}" \
         "{{DEFAULT_TARGET_STATE_VERSION}}" \
-        {{infisical_client_id}} \
-        {{infisical_client_secret}} \
-        {{infisical_address}} \
-        {{enable_ipv4}}
+        "{{infisical_client_id}}" \
+        "{{infisical_client_secret}}" \
+        "{{infisical_address}}" \
+        "{{enable_ipv4}}"
     # The exit code of the helper script will be the exit code of this recipe
 
 list-servers: _fetch_hcloud_token
@@ -160,9 +159,9 @@ create-populated-script flake_location=DEFAULT_FLAKE_LOCATION flake_attribute=DE
     # Replace environment variables with actual values - using awk for better handling of special characters
     awk -v flake="{{flake_location}}#{{flake_attribute}}" '{gsub(/^FLAKE_URI_INPUT="\${FLAKE_URI:-}"$/, "FLAKE_URI_INPUT=\"" flake "\""); print}' populated/nixos-everywhere-populated.sh > populated/temp.sh && mv populated/temp.sh populated/nixos-everywhere-populated.sh
     
-    awk -v channel={{nixos_channel}} '{gsub(/^NIXOS_CHANNEL_ENV="\${NIXOS_CHANNEL:-nixos-24.11}"$/, "NIXOS_CHANNEL_ENV=\"" channel "\""); print}' populated/nixos-everywhere-populated.sh > populated/temp.sh && mv populated/temp.sh populated/nixos-everywhere-populated.sh
+    awk -v channel="{{nixos_channel}}" '{gsub(/^NIXOS_CHANNEL_ENV="\${NIXOS_CHANNEL:-nixos-24.11}"$/, "NIXOS_CHANNEL_ENV=\"" channel "\""); print}' populated/nixos-everywhere-populated.sh > populated/temp.sh && mv populated/temp.sh populated/nixos-everywhere-populated.sh
     
-    awk -v hostname={{target_hostname}} '{gsub(/^HOSTNAME_INIT_ENV="\${HOSTNAME_INIT:-\$\(hostname -s 2>\/dev\/null \|\| echo "nixos-node"\)}"$/, "HOSTNAME_INIT_ENV=\"" hostname "\""); print}' populated/nixos-everywhere-populated.sh > populated/temp.sh && mv populated/temp.sh populated/nixos-everywhere-populated.sh
+    awk -v hostname="{{target_hostname}}" '{gsub(/^HOSTNAME_INIT_ENV="\${HOSTNAME_INIT:-\$\(hostname -s 2>\/dev\/null \|\| echo "nixos-node"\)}"$/, "HOSTNAME_INIT_ENV=\"" hostname "\""); print}' populated/nixos-everywhere-populated.sh > populated/temp.sh && mv populated/temp.sh populated/nixos-everywhere-populated.sh
     
     awk -v timezone="{{target_timezone}}" '{gsub(/^TIMEZONE_INIT_ENV="\${TIMEZONE_INIT:-Etc\/UTC}"$/, "TIMEZONE_INIT_ENV=\"" timezone "\""); print}' populated/nixos-everywhere-populated.sh > populated/temp.sh && mv populated/temp.sh populated/nixos-everywhere-populated.sh
     
@@ -192,7 +191,6 @@ create-populated-script flake_location=DEFAULT_FLAKE_LOCATION flake_attribute=DE
 
 # Creates a server with IPv4 enabled
 # This is a simple wrapper around create-server with enable_ipv4=true
-        temp_root_password={{temp_root_password}}
 create-server-ipv4 server_name flake_location=DEFAULT_FLAKE_LOCATION flake_attribute=DEFAULT_FLAKE_ATTRIBUTE server_type=DEFAULT_SERVER_TYPE image=DEFAULT_SERVER_IMAGE location=DEFAULT_SERVER_LOCATION ssh_key_name=DEFAULT_SSH_KEY_NAME network=DEFAULT_PRIVATE_NETWORK volume=DEFAULT_VOLUME_NAME firewall=DEFAULT_FIREWALL_NAME placement_group=DEFAULT_PLACEMENT_GROUP labels=DEFAULT_LABELS nixos_channel=DEFAULT_TARGET_NIXOS_CHANNEL target_hostname="" infisical_client_id=INFISICAL_BOOTSTRAP_CLIENT_ID_ENV infisical_client_secret=INFISICAL_BOOTSTRAP_CLIENT_SECRET_ENV infisical_address=INFISICAL_BOOTSTRAP_ADDRESS_ENV:
     @just create-server \
         server_name={{server_name}} \
@@ -213,7 +211,6 @@ create-server-ipv4 server_name flake_location=DEFAULT_FLAKE_LOCATION flake_attri
         infisical_client_secret={{infisical_client_secret}} \
         infisical_address={{infisical_address}} \
         enable_ipv4=true
-        temp_root_password={{temp_root_password}}
 
 # Creates a server with IPv4 enabled and volume attached
 # This is a direct approach using hcloud CLI
@@ -238,11 +235,11 @@ hcloud-server-ipv4 server_name="k3s-control-01" server_type=DEFAULT_SERVER_TYPE 
     # Create the server
     echo "Creating server {{server_name}} with IPv4 enabled and volume {{volume_name}} attached..."
     HCLOUD_TOKEN="$HCLOUD_TOKEN" hcloud server create \
-      --name {{server_name}} \
-      --type {{server_type}} \
-      --image {{image}} \
-      --location {{location}} \
-      --ssh-key {{ssh_key_name}} \
+      --name "{{server_name}}" \
+      --type "{{server_type}}" \
+      --image "{{image}}" \
+      --location "{{location}}" \
+      --ssh-key "{{ssh_key_name}}" \
       --volume "{{volume_name}}" \
       --user-data-from-file /tmp/cloud-init.yaml
     
@@ -250,7 +247,7 @@ hcloud-server-ipv4 server_name="k3s-control-01" server_type=DEFAULT_SERVER_TYPE 
     rm -f /tmp/cloud-init.yaml
     
     # Get IP
-    SERVER_IP=$(HCLOUD_TOKEN="$HCLOUD_TOKEN" hcloud server ip {{server_name}})
+    SERVER_IP=$(HCLOUD_TOKEN="$HCLOUD_TOKEN" hcloud server ip "{{server_name}}")
     echo "Server {{server_name}} created with IP: $SERVER_IP"
     echo "You can connect with: ssh root@$SERVER_IP"
 
