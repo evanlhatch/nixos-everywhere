@@ -18,10 +18,16 @@ Common Commands:
     Provision a new server with the specified name and Flake URI.
     Optional parameters:
       deploy_method="convert"    # Method to use (convert or direct)
-      server_type="cpx11"        # Hetzner server type
+      server_type="cpx21"        # Hetzner server type
       base_image="debian-12"     # Base image for conversion
-      location="nbg1"            # Server location
+      location="ash"             # Server location (default: Ashburn, VA)
       ssh_key_name="your-key"    # SSH key name in Hetzner
+      network="k3s-net"          # Private network to join
+      volume="volume-ash-1"      # Volume to attach
+      firewall="k3s-fw"          # Firewall to apply
+      placement_group="k3s-pg"   # Placement group to use
+      labels="key=value;..."     # Labels to apply (semicolon-separated)
+      enable_ipv4="false"        # Set to false for IPv6 only (default)
 
   just list-servers
     List all servers in your Hetzner Cloud project.

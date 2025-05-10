@@ -10,6 +10,7 @@ This project provides a streamlined and robust framework for provisioning NixOS 
 - **Orchestration:** Clear and powerful `justfile` for all common operations.
 - **Modular Design:** Scripts with well-defined responsibilities.
 - **Improved Debuggability:** Enhanced logging throughout the process.
+- **Hetzner-Specific Features:** Support for private networks, volumes, firewalls, placement groups, and IPv6-only configuration.
 
 ## Prerequisites
 
@@ -40,9 +41,9 @@ just check-deps
 │   ├── deps_check.sh            # Checks for local dependencies
 │   ├── hetzner_provision.sh     # Creates Hetzner server
 │   ├── cloud_init_generator.sh  # Dynamically creates cloud-init YAML
-│   ├── nixos_convert_on_debian.sh # Wrapper script run by cloud-init for conversion
 │   ├── nixos_everywhere.sh      # Core NixOS conversion script
-│   └── nixos_install_direct.sh  # (Optional) For direct NixOS install
+│   ├── nixos_install_direct.sh  # (Optional) For direct NixOS install
+│   └── show_help.sh             # Displays help information
 └── templates/
     └── cloud_init_base.yaml     # Base template for cloud-init
 ```
@@ -88,6 +89,19 @@ All commands are run via `just`. See `just --list` for all available commands.
   * `flake_uri`: The full Nix Flake URI including the host attribute (e.g., `github:owner/repo#hostname`).
   * You can override other defaults (like server type, location) as arguments to `just`.
 
+- **Advanced Provisioning with Custom Settings:**
+  ```bash
+  just provision server_name="k3s-control-01" \
+    flake_uri="github:yourusername/yourflake#yourNixosHost" \
+    server_type="cpx21" \
+    location="ash" \
+    network="k3s-net" \
+    volume="volume-ash-1" \
+    firewall="k3s-fw" \
+    placement_group="k3s-placement-group" \
+    enable_ipv4="false"
+  ```
+
 - **List Servers:**
   ```bash
   just list-servers
@@ -114,10 +128,10 @@ All commands are run via `just`. See `just --list` for all available commands.
 1. Set up your `.env` file.
 2. Run `just check-deps`.
 3. Provision a server:
-   `just provision server_name="test-01" flake_uri="github:your/flake#host"`
-4. Wait for provisioning and NixOS installation (monitor with `just logs server_name="test-01"`).
-5. SSH into the server: `just ssh server_name="test-01"`.
-6. When done, destroy the server: `just destroy server_name="test-01"`.
+   `just provision server_name="k3s-control-01" flake_uri="github:your/flake#host"`
+4. Wait for provisioning and NixOS installation (monitor with `just logs server_name="k3s-control-01"`).
+5. SSH into the server: `just ssh server_name="k3s-control-01"`.
+6. When done, destroy the server: `just destroy server_name="k3s-control-01"`.
 
 ## How It Works
 

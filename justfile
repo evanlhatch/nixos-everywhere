@@ -10,10 +10,16 @@ set dotenv-load := true
 
 # Hetzner Server Defaults
 DEFAULT_HETZNER_SERVER_NAME          := "nixos-test"
-DEFAULT_HETZNER_SERVER_TYPE          := env_var_or_default('HETZNER_DEFAULT_SERVER_TYPE', 'cpx11')
+DEFAULT_HETZNER_SERVER_TYPE          := env_var_or_default('HETZNER_DEFAULT_SERVER_TYPE', 'cpx21')
 DEFAULT_HETZNER_BASE_IMAGE           := env_var_or_default('HETZNER_DEFAULT_BASE_IMAGE', 'debian-12')
-DEFAULT_HETZNER_LOCATION             := env_var_or_default('HETZNER_DEFAULT_LOCATION', 'nbg1')
+DEFAULT_HETZNER_LOCATION             := env_var_or_default('HETZNER_DEFAULT_LOCATION', 'ash')
 DEFAULT_HETZNER_SSH_KEY_NAME         := env_var_or_default('HETZNER_SSH_KEY_NAME_OR_FINGERPRINT', 'blade-nixos SSH Key')
+DEFAULT_HETZNER_NETWORK              := env_var_or_default('HETZNER_DEFAULT_NETWORK', 'k3s-net')
+DEFAULT_HETZNER_VOLUME               := env_var_or_default('HETZNER_DEFAULT_VOLUME', 'volume-ash-1')
+DEFAULT_HETZNER_FIREWALL             := env_var_or_default('HETZNER_DEFAULT_FIREWALL', 'k3s-fw')
+DEFAULT_HETZNER_PLACEMENT_GROUP      := env_var_or_default('HETZNER_DEFAULT_PLACEMENT_GROUP', 'k3s-placement-group')
+DEFAULT_HETZNER_LABELS               := env_var_or_default('HETZNER_DEFAULT_LABELS', 'deploy=nixos-everywhere;project=homelab')
+DEFAULT_HETZNER_ENABLE_IPV4          := env_var_or_default('HETZNER_DEFAULT_ENABLE_IPV4', 'false')
 
 # NixOS Configuration Defaults
 DEFAULT_NIXOS_FLAKE_URI              := env_var_or_default('NIXOS_DEFAULT_FLAKE_URI', 'github:evanlhatch/k3s-nixos-config')
@@ -59,6 +65,12 @@ provision server_name flake_uri \
     base_image=DEFAULT_HETZNER_BASE_IMAGE \
     location=DEFAULT_HETZNER_LOCATION \
     ssh_key_name=DEFAULT_HETZNER_SSH_KEY_NAME \
+    network=DEFAULT_HETZNER_NETWORK \
+    volume=DEFAULT_HETZNER_VOLUME \
+    firewall=DEFAULT_HETZNER_FIREWALL \
+    placement_group=DEFAULT_HETZNER_PLACEMENT_GROUP \
+    labels=DEFAULT_HETZNER_LABELS \
+    enable_ipv4=DEFAULT_HETZNER_ENABLE_IPV4 \
     nixos_channel=DEFAULT_NIXOS_CHANNEL_ENV \
     target_hostname_init=DEFAULT_HOSTNAME_INIT_ENV \
     timezone_init=DEFAULT_TIMEZONE_INIT_ENV \
@@ -74,6 +86,12 @@ provision server_name flake_uri \
     @echo "  Base Image (for conversion): {{base_image}}"
     @echo "  Location: {{location}}"
     @echo "  SSH Key Name (Hetzner): {{ssh_key_name}}"
+    @echo "  Network: {{network}}"
+    @echo "  Volume: {{volume}}"
+    @echo "  Firewall: {{firewall}}"
+    @echo "  Placement Group: {{placement_group}}"
+    @echo "  Labels: {{labels}}"
+    @echo "  Enable IPv4: {{enable_ipv4}}"
 
     # Export variables for hetzner_provision.sh
     @export HCLOUD_TOKEN="${HCLOUD_TOKEN}"; \
@@ -82,6 +100,12 @@ provision server_name flake_uri \
     export HETZNER_BASE_IMAGE="{{base_image}}"; \
     export HETZNER_LOCATION="{{location}}"; \
     export HETZNER_SSH_KEY_NAME="{{ssh_key_name}}"; \
+    export HETZNER_NETWORK="{{network}}"; \
+    export HETZNER_VOLUME="{{volume}}"; \
+    export HETZNER_FIREWALL="{{firewall}}"; \
+    export HETZNER_PLACEMENT_GROUP="{{placement_group}}"; \
+    export HETZNER_LABELS="{{labels}}"; \
+    export HETZNER_ENABLE_IPV4="{{enable_ipv4}}"; \
     export NIXOS_FLAKE_URI="{{flake_uri}}"; \
     export DEPLOY_METHOD="{{deploy_method}}"; \
     export NIXOS_CHANNEL_ENV="{{nixos_channel}}"; \

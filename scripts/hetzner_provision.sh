@@ -36,7 +36,8 @@ log_info "--- Hetzner Provisioning Script Started ---"
 # Optional Hetzner server parameters:
 # HETZNER_NETWORK (name of private network)
 # HETZNER_VOLUME (name of volume to attach)
-# HETZNER_FIREWALLS (comma-separated list of firewall names)
+# HETZNER_FIREWALL (name of firewall to apply)
+# HETZNER_PLACEMENT_GROUP (name of placement group)
 # HETZNER_LABELS (semicolon-separated key=value pairs)
 # HETZNER_ENABLE_IPV4 (true or false, defaults to true if not specified)
 #
@@ -88,6 +89,14 @@ log_info "Flake Host Attribute: ${NIXOS_FLAKE_HOST_ATTR_FOR_GEN}"
 log_info "Effective Hostname for Init: ${HOSTNAME_INIT_ENV}"
 log_info "NixOS-Everywhere Script URL: ${NIXOS_EVERYWHERE_REMOTE_URL_CONFIG}"
 [[ "$DEPLOY_METHOD" == "convert" ]] && log_info "Base Image (for conversion): ${HETZNER_BASE_IMAGE}"
+
+# Log optional Hetzner parameters if set
+[[ -n "${HETZNER_NETWORK:-}" ]] && log_info "Network: ${HETZNER_NETWORK}"
+[[ -n "${HETZNER_VOLUME:-}" ]] && log_info "Volume: ${HETZNER_VOLUME}"
+[[ -n "${HETZNER_FIREWALL:-}" ]] && log_info "Firewall: ${HETZNER_FIREWALL}"
+[[ -n "${HETZNER_PLACEMENT_GROUP:-}" ]] && log_info "Placement Group: ${HETZNER_PLACEMENT_GROUP}"
+[[ -n "${HETZNER_LABELS:-}" ]] && log_info "Labels: ${HETZNER_LABELS}"
+log_info "Enable IPv4: ${HETZNER_ENABLE_IPV4:-true}"
 
 # --- Fetch SSH Public Key from Hetzner Cloud ---
 log_info "Fetching public key content for Hetzner SSH key: '${HETZNER_SSH_KEY_NAME}'..."
@@ -151,12 +160,12 @@ if [[ -n "${HETZNER_VOLUME:-}" ]]; then
     HCLOUD_ARGS+=(--volume "${HETZNER_VOLUME}")
 fi
 
-if [[ -n "${HETZNER_FIREWALLS:-}" ]]; then
-    IFS=',' read -ra FW_ARRAY <<< "${HETZNER_FIREWALLS}"
-    for fw in "${FW_ARRAY[@]}"; do
-        trimmed_fw=$(echo "$fw" | xargs) # Trim whitespace
-        [[ -n "$trimmed_fw" ]] && HCLOUD_ARGS+=(--firewall "$trimmed_fw")
-    done
+if [[ -n "${HETZNER_FIREWALL:-}" ]]; then
+    HCLOUD_ARGS+=(--firewall "${HETZNER_FIREWALL}")
+fi
+
+if [[ -n "${HETZNER_PLACEMENT_GROUP:-}" ]]; then
+    HCLOUD_ARGS+=(--placement-group "${HETZNER_PLACEMENT_GROUP}")
 fi
 
 if [[ -n "${HETZNER_LABELS:-}" ]]; then
