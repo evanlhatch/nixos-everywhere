@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+
+# This is a wrapper script for infect_debian_server.sh
+# Created to work around potential issues with .sh extension in justfile
+
+# Set default values for required environment variables if not set
+export INFECT_SERVER_IP="${INFECT_SERVER_IP:-DRY_RUN_IP}"
+export INFECT_FLAKE_URI="${INFECT_FLAKE_URI:-github:DRYRUN/DRYRUN#dryRunHost}"
+export INFECT_NIXOS_SSH_KEYS="${INFECT_NIXOS_SSH_KEYS:-ssh-rsa DRYRUNKEY}"
+export INFECT_SSH_USER="${INFECT_SSH_USER:-root}"
+export INFECT_NIXOS_CHANNEL="${INFECT_NIXOS_CHANNEL:-nixos-24.05}"
+export INFECT_HOSTNAME_INIT="${INFECT_HOSTNAME_INIT:-nixos-infected}"
+export INFECT_TIMEZONE_INIT="${INFECT_TIMEZONE_INIT:-Etc/UTC}"
+export INFECT_LOCALE_LANG_INIT="${INFECT_LOCALE_LANG_INIT:-en_US.UTF-8}"
+export INFECT_STATE_VERSION_INIT="${INFECT_STATE_VERSION_INIT:-24.05}"
+export INFECT_INFISICAL_CLIENT_ID="${INFECT_INFISICAL_CLIENT_ID:-}"
+export INFECT_INFISICAL_CLIENT_SECRET="${INFECT_INFISICAL_CLIENT_SECRET:-}"
+export INFECT_INFISICAL_BOOTSTRAP_ADDRESS="${INFECT_INFISICAL_BOOTSTRAP_ADDRESS:-https://app.infisical.com}"
+
+# Just call the original script
+"$(dirname "$0")/infect_debian_server.sh"
