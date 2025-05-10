@@ -142,11 +142,16 @@ fi
 HCLOUD_ARGS+=(--location "${HETZNER_LOCATION}")
 HCLOUD_ARGS+=(--ssh-key "${HETZNER_SSH_KEY_NAME}")
 
-# Optional arguments
-[[ -n "${HETZNER_NETWORK}" ]] && HCLOUD_ARGS+=(--network "${HETZNER_NETWORK}")
-[[ -n "${HETZNER_VOLUME}" ]] && HCLOUD_ARGS+=(--volume "${HETZNER_VOLUME}")
+# Optional arguments - use if defined
+if [[ -n "${HETZNER_NETWORK:-}" ]]; then
+    HCLOUD_ARGS+=(--network "${HETZNER_NETWORK}")
+fi
 
-if [[ -n "${HETZNER_FIREWALLS}" ]]; then
+if [[ -n "${HETZNER_VOLUME:-}" ]]; then
+    HCLOUD_ARGS+=(--volume "${HETZNER_VOLUME}")
+fi
+
+if [[ -n "${HETZNER_FIREWALLS:-}" ]]; then
     IFS=',' read -ra FW_ARRAY <<< "${HETZNER_FIREWALLS}"
     for fw in "${FW_ARRAY[@]}"; do
         trimmed_fw=$(echo "$fw" | xargs) # Trim whitespace
@@ -154,7 +159,7 @@ if [[ -n "${HETZNER_FIREWALLS}" ]]; then
     done
 fi
 
-if [[ -n "${HETZNER_LABELS}" ]]; then
+if [[ -n "${HETZNER_LABELS:-}" ]]; then
     IFS=';' read -ra LABEL_ARRAY <<< "${HETZNER_LABELS}"
     for label in "${LABEL_ARRAY[@]}"; do
         trimmed_label=$(echo "$label" | xargs) # Trim whitespace
@@ -163,7 +168,7 @@ if [[ -n "${HETZNER_LABELS}" ]]; then
 fi
 
 # Handle public IPv4 (defaults to enabled if HETZNER_ENABLE_IPV4 is not 'false')
-if [[ "${HETZNER_ENABLE_IPV4}" == "false" ]]; then
+if [[ "${HETZNER_ENABLE_IPV4:-true}" == "false" ]]; then
     log_info "Disabling public IPv4 for the server."
     HCLOUD_ARGS+=(--without-ipv4) # Hetzner CLI flag might be different, e.g. --disable-public-ipv4
 else
