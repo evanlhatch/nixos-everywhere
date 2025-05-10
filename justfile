@@ -130,24 +130,13 @@ destroy server_name:
 ssh server_name ssh_user=DEFAULT_NIXOS_SSH_USER ipv4=DEFAULT_HETZNER_ENABLE_IPV4:
     @echo "Attempting to SSH into server '{{server_name}}' as user '{{ssh_user}}'..."
     @if [ "{{ipv4}}" = "false" ]; then \
-        SERVER_IP=$(hcloud server describe "{{server_name}}" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/:1/g'); \
-        echo "Using IPv6 address: [${SERVER_IP}]"; \
-        if [ -z "$$SERVER_IP" ]; then \
-            echo "Error: Could not retrieve IPv6 address for server '{{server_name}}'."; \
-            echo "Ensure the server exists and is running."; \
-            exit 1; \
-        fi; \
-        echo "Connecting to [$$SERVER_IP]..."; \
-        ssh {{ssh_user}}@[$$SERVER_IP]; \
+        IPV6=$(hcloud server describe "{{server_name}}" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/:1/g'); \
+        echo "Using IPv6 address: [$$IPV6]"; \
+        ssh {{ssh_user}}@[$$IPV6]; \
     else \
-        SERVER_IP=$(hcloud server ip "{{server_name}}"); \
-        if [ -z "$$SERVER_IP" ]; then \
-            echo "Error: Could not retrieve IPv4 address for server '{{server_name}}'."; \
-            echo "Ensure the server exists and is running."; \
-            exit 1; \
-        fi; \
-        echo "Connecting to $$SERVER_IP..."; \
-        ssh {{ssh_user}}@$$SERVER_IP; \
+        IPV4=$(hcloud server ip "{{server_name}}"); \
+        echo "Using IPv4 address: $$IPV4"; \
+        ssh {{ssh_user}}@$$IPV4; \
     fi
 
 # Fetch cloud-init logs from a server
@@ -155,42 +144,33 @@ ssh server_name ssh_user=DEFAULT_NIXOS_SSH_USER ipv4=DEFAULT_HETZNER_ENABLE_IPV4
 logs server_name ssh_user=DEFAULT_NIXOS_SSH_USER ipv4=DEFAULT_HETZNER_ENABLE_IPV4:
     @echo "Fetching cloud-init logs from server '{{server_name}}'..."
     @if [ "{{ipv4}}" = "false" ]; then \
-        SERVER_IP=$$(hcloud server describe "{{server_name}}" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/:1/g'); \
-        echo "Using IPv6 address: [$$SERVER_IP]"; \
-        if [ -z "$$SERVER_IP" ]; then \
-            echo "Error: Could not retrieve IPv6 address for server '{{server_name}}'."; \
-            exit 1; \
-        fi; \
-        echo "Connecting to [$$SERVER_IP] to fetch logs..."; \
-        ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null {{ssh_user}}@[$$SERVER_IP] \
+        IPV6=$(hcloud server describe "{{server_name}}" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/:1/g'); \
+        echo "Using IPv6 address: [$$IPV6]"; \
+        ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null {{ssh_user}}@[$$IPV6] \
             "echo '--- /var/log/cloud-init-output.log ---'; \
-             sudo cat /var/log/cloud-init-output.log || echo 'Failed to cat /var/log/cloud-init-output.log'; \
-             echo '\n--- /var/log/nixos-conversion-detailed.log (if convert method used) ---'; \
-             sudo cat /var/log/nixos-conversion-detailed.log || echo 'No nixos-conversion-detailed.log found.'; \
-             echo '\n--- /var/log/nixos-everywhere.log (if conversion script created it) ---'; \
-             sudo cat /var/log/nixos-everywhere.log || echo 'No nixos-everywhere.log found.'; \
-             echo '\n--- journalctl -u cloud-init ---'; \
-             sudo journalctl -u cloud-init --no-pager -n 50 || echo 'Failed to get cloud-init journal.'; \
-             echo '\n--- journalctl -u cloud-final ---'; \
-             sudo journalctl -u cloud-final --no-pager -n 50 || echo 'Failed to get cloud-final journal.'"; \
+            sudo cat /var/log/cloud-init-output.log || echo 'Failed to cat /var/log/cloud-init-output.log'; \
+            echo '--- /var/log/nixos-conversion-detailed.log ---'; \
+            sudo cat /var/log/nixos-conversion-detailed.log || echo 'No nixos-conversion-detailed.log found.'; \
+            echo '--- /var/log/nixos-everywhere.log ---'; \
+            sudo cat /var/log/nixos-everywhere.log || echo 'No nixos-everywhere.log found.'; \
+            echo '--- journalctl -u cloud-init ---'; \
+            sudo journalctl -u cloud-init --no-pager -n 50 || echo 'Failed to get cloud-init journal.'; \
+            echo '--- journalctl -u cloud-final ---'; \
+            sudo journalctl -u cloud-final --no-pager -n 50 || echo 'Failed to get cloud-final journal.'"; \
     else \
-        SERVER_IP=$$(hcloud server ip "{{server_name}}"); \
-        if [ -z "$$SERVER_IP" ]; then \
-            echo "Error: Could not retrieve IPv4 address for server '{{server_name}}'."; \
-            exit 1; \
-        fi; \
-        echo "Connecting to $$SERVER_IP to fetch logs..."; \
-        ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null {{ssh_user}}@$$SERVER_IP \
+        IPV4=$(hcloud server ip "{{server_name}}"); \
+        echo "Using IPv4 address: $$IPV4"; \
+        ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null {{ssh_user}}@$$IPV4 \
             "echo '--- /var/log/cloud-init-output.log ---'; \
-             sudo cat /var/log/cloud-init-output.log || echo 'Failed to cat /var/log/cloud-init-output.log'; \
-             echo '\n--- /var/log/nixos-conversion-detailed.log (if convert method used) ---'; \
-             sudo cat /var/log/nixos-conversion-detailed.log || echo 'No nixos-conversion-detailed.log found.'; \
-             echo '\n--- /var/log/nixos-everywhere.log (if conversion script created it) ---'; \
-             sudo cat /var/log/nixos-everywhere.log || echo 'No nixos-everywhere.log found.'; \
-             echo '\n--- journalctl -u cloud-init ---'; \
-             sudo journalctl -u cloud-init --no-pager -n 50 || echo 'Failed to get cloud-init journal.'; \
-             echo '\n--- journalctl -u cloud-final ---'; \
-             sudo journalctl -u cloud-final --no-pager -n 50 || echo 'Failed to get cloud-final journal.'"; \
+            sudo cat /var/log/cloud-init-output.log || echo 'Failed to cat /var/log/cloud-init-output.log'; \
+            echo '--- /var/log/nixos-conversion-detailed.log ---'; \
+            sudo cat /var/log/nixos-conversion-detailed.log || echo 'No nixos-conversion-detailed.log found.'; \
+            echo '--- /var/log/nixos-everywhere.log ---'; \
+            sudo cat /var/log/nixos-everywhere.log || echo 'No nixos-everywhere.log found.'; \
+            echo '--- journalctl -u cloud-init ---'; \
+            sudo journalctl -u cloud-init --no-pager -n 50 || echo 'Failed to get cloud-init journal.'; \
+            echo '--- journalctl -u cloud-final ---'; \
+            sudo journalctl -u cloud-final --no-pager -n 50 || echo 'Failed to get cloud-final journal.'"; \
     fi
 
 # List active Hetzner servers
