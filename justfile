@@ -167,43 +167,43 @@ infect-debian server_ip flake_uri \
     infisical_client_secret=DEFAULT_INFISICAL_CLIENT_SECRET \
     infisical_bootstrap_address=DEFAULT_INFISICAL_BOOTSTRAP_ADDRESS:
 
-    @echo ">>> Preparing to infect Debian server: {{ssh_user}}@{{server_ip}}"
-    @echo "    Flake URI for NixOS: {{flake_uri}}"
-    @echo "    Target Hostname: {{target_hostname_init}}"
-    @echo "    SSH User for infection: {{ssh_user}}"
+@echo ">>> Preparing to infect Debian server: {{ssh_user}}@{{server_ip}}"
+@echo "    Flake URI for NixOS: {{flake_uri}}"
+@echo "    Target Hostname: {{target_hostname_init}}"
+@echo "    SSH User for infection: {{ssh_user}}"
 
-    @if [ -z "{{nixos_ssh_keys}}" ]; then \
-        echo "ERROR: SSH authorized keys are not set!"; \
-        echo "       Ensure the NIXOS_SSH_AUTHORIZED_KEYS environment variable is set, or pass nixos_ssh_keys parameter directly."; \
-        exit 1; \
-    fi
+@if [ -z "{{nixos_ssh_keys}}" ]; then \
+    echo "ERROR: SSH authorized keys are not set!"; \
+    echo "       Ensure the NIXOS_SSH_AUTHORIZED_KEYS environment variable is set, or pass nixos_ssh_keys parameter directly."; \
+    exit 1; \
+fi
 
-    _NIXOS_EVERYWHERE_SCRIPT_URL := "https://raw.githubusercontent.com/evanlhatch/nixos-everywhere/refactor-v3/scripts/nixos_everywhere.sh"
+_NIXOS_EVERYWHERE_SCRIPT_URL := "https://raw.githubusercontent.com/evanlhatch/nixos-everywhere/refactor-v3/scripts/nixos_everywhere.sh"
 
-    # Construct the command to be run on the remote server.
-    # Single quotes around substituted variables are important for the remote shell.
-    _REMOTE_COMMAND := format(" \
-        export FLAKE_URI_INPUT='{}'; \
-        export SSH_AUTHORIZED_KEYS_INPUT='{}'; \
-        export NIXOS_CHANNEL_ENV='{}'; \
-        export HOSTNAME_INIT_ENV='{}'; \
-        export TIMEZONE_INIT_ENV='{}'; \
-        export LOCALE_LANG_INIT_ENV='{}'; \
-        export STATE_VERSION_INIT_ENV='{}'; \
-        export INFISICAL_CLIENT_ID_FOR_FLAKE='{}'; \
-        export INFISICAL_CLIENT_SECRET_FOR_FLAKE='{}'; \
-        export INFISICAL_ADDRESS_FOR_FLAKE='{}'; \
-        curl -L {} | bash 2>&1 | tee /var/log/nixos-everywhere-manual-infect.log \
-    ", flake_uri, nixos_ssh_keys, nixos_channel, target_hostname_init, timezone_init, locale_lang_init, state_version_init, infisical_client_id, infisical_client_secret, infisical_bootstrap_address, _NIXOS_EVERYWHERE_SCRIPT_URL)
+# Construct the command to be run on the remote server.
+# Single quotes around substituted variables are important for the remote shell.
+_REMOTE_COMMAND := format(" \
+    export FLAKE_URI_INPUT='{}'; \
+    export SSH_AUTHORIZED_KEYS_INPUT='{}'; \
+    export NIXOS_CHANNEL_ENV='{}'; \
+    export HOSTNAME_INIT_ENV='{}'; \
+    export TIMEZONE_INIT_ENV='{}'; \
+    export LOCALE_LANG_INIT_ENV='{}'; \
+    export STATE_VERSION_INIT_ENV='{}'; \
+    export INFISICAL_CLIENT_ID_FOR_FLAKE='{}'; \
+    export INFISICAL_CLIENT_SECRET_FOR_FLAKE='{}'; \
+    export INFISICAL_ADDRESS_FOR_FLAKE='{}'; \
+    curl -L {} | bash 2>&1 | tee /var/log/nixos-everywhere-manual-infect.log \
+", flake_uri, nixos_ssh_keys, nixos_channel, target_hostname_init, timezone_init, locale_lang_init, state_version_init, infisical_client_id, infisical_client_secret, infisical_bootstrap_address, _NIXOS_EVERYWHERE_SCRIPT_URL)
 
-    @echo ">>> Initiating infection on {{ssh_user}}@{{server_ip}}."
-    @echo "    Script URL: {{_NIXOS_EVERYWHERE_SCRIPT_URL}}"
-    
-    @ssh -t {{ssh_user}}@{{server_ip}} {{_REMOTE_COMMAND}}
+@echo ">>> Initiating infection on {{ssh_user}}@{{server_ip}}."
+@echo "    Script URL: {{_NIXOS_EVERYWHERE_SCRIPT_URL}}"
 
-    @echo ">>> Infection process command sent to {{server_ip}}."
-    @echo "    Monitor /var/log/nixos-everywhere-manual-infect.log on the server for progress."
-    @echo "    This process can take a significant amount of time."
+@ssh -t {{ssh_user}}@{{server_ip}} {{_REMOTE_COMMAND}}
+
+@echo ">>> Infection process command sent to {{server_ip}}."
+@echo "    Monitor /var/log/nixos-everywhere-manual-infect.log on the server for progress."
+@echo "    This process can take a significant amount of time."
 
 # Default target: Run check-deps and show help
 default:
