@@ -166,20 +166,20 @@ infect-debian server_ip flake_uri \
     infisical_client_id=DEFAULT_INFISICAL_CLIENT_ID \
     infisical_client_secret=DEFAULT_INFISICAL_CLIENT_SECRET \
     infisical_bootstrap_address=DEFAULT_INFISICAL_BOOTSTRAP_ADDRESS:
-@echo ">>> Orchestrating Debian to NixOS infection via script..."
-@export INFECT_SERVER_IP="{{server_ip}}"
-@export INFECT_SSH_USER="{{ssh_user}}"
-@export INFECT_FLAKE_URI="{{flake_uri}}"
-@export INFECT_NIXOS_SSH_KEYS="{{nixos_ssh_keys}}"
-@export INFECT_NIXOS_CHANNEL="{{nixos_channel}}"
-@export INFECT_HOSTNAME_INIT="{{target_hostname_init}}"
-@export INFECT_TIMEZONE_INIT="{{timezone_init}}"
-@export INFECT_LOCALE_LANG_INIT="{{locale_lang_init}}"
-@export INFECT_STATE_VERSION_INIT="{{state_version_init}}"
-@export INFECT_INFISICAL_CLIENT_ID="{{infisical_client_id}}"
-@export INFECT_INFISICAL_CLIENT_SECRET="{{infisical_client_secret}}"
-@export INFECT_INFISICAL_BOOTSTRAP_ADDRESS="{{infisical_bootstrap_address}}"
-@bash {{SCRIPTS_DIR}}/infect_debian
+    @echo ">>> Orchestrating Debian to NixOS infection via script..."
+    @export INFECT_SERVER_IP="{{server_ip}}"
+    @export INFECT_SSH_USER="{{ssh_user}}"
+    @export INFECT_FLAKE_URI="{{flake_uri}}"
+    @export INFECT_NIXOS_SSH_KEYS="{{nixos_ssh_keys}}"
+    @export INFECT_NIXOS_CHANNEL="{{nixos_channel}}"
+    @export INFECT_HOSTNAME_INIT="{{target_hostname_init}}"
+    @export INFECT_TIMEZONE_INIT="{{timezone_init}}"
+    @export INFECT_LOCALE_LANG_INIT="{{locale_lang_init}}"
+    @export INFECT_STATE_VERSION_INIT="{{state_version_init}}"
+    @export INFECT_INFISICAL_CLIENT_ID="{{infisical_client_id}}"
+    @export INFECT_INFISICAL_CLIENT_SECRET="{{infisical_client_secret}}"
+    @export INFECT_INFISICAL_BOOTSTRAP_ADDRESS="{{infisical_bootstrap_address}}"
+    @bash {{SCRIPTS_DIR}}/infect_debian
 
 # Default target: Run check-deps and show help
 default:
