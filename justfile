@@ -172,7 +172,7 @@ infect-debian server_ip flake_uri \
 @echo "    Target Hostname: {{target_hostname_init}}"
 @echo "    SSH User for infection: {{ssh_user}}"
 
-@if [ -z "{{nixos_ssh_keys}}" ]; then \
+if [ -z "{{nixos_ssh_keys}}" ]; then \
     echo "ERROR: SSH authorized keys are not set!"; \
     echo "       Ensure the NIXOS_SSH_AUTHORIZED_KEYS environment variable is set, or pass nixos_ssh_keys parameter directly."; \
     exit 1; \
