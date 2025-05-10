@@ -130,7 +130,7 @@ destroy server_name:
 ssh server_name ssh_user=DEFAULT_NIXOS_SSH_USER ipv4=DEFAULT_HETZNER_ENABLE_IPV4:
     @echo "Attempting to SSH into server '{{server_name}}' as user '{{ssh_user}}'..."
     @if [ "{{ipv4}}" = "false" ]; then \
-        IPV6=$(hcloud server describe "{{server_name}}" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/:1/g'); \
+        IPV6=$(hcloud server describe "{{server_name}}" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/::1/g'); \
         echo "Using IPv6 address: [$$IPV6]"; \
         ssh {{ssh_user}}@[$$IPV6]; \
     else \

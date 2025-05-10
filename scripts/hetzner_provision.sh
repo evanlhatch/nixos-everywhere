@@ -200,7 +200,7 @@ if hcloud server create "${HCLOUD_ARGS[@]}"; then
     # Get server IP - handle IPv6-only servers
     if [[ "${HETZNER_ENABLE_IPV4:-true}" == "false" ]]; then
         # For IPv6-only servers, get the IPv6 address
-        SERVER_IP=$(hcloud server describe "${HETZNER_SERVER_NAME}" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/:1/g')
+        SERVER_IP=$(hcloud server describe "${HETZNER_SERVER_NAME}" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/::1/g')
         log_info "Server IPv6: ${SERVER_IP:-Not available yet}"
     else
         # For servers with IPv4, use the standard command

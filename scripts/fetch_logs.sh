@@ -25,7 +25,7 @@ log_info "Fetching cloud-init logs from server '$SERVER_NAME' as user '$SSH_USER
 
 if [[ "$USE_IPV4" == "false" ]]; then
     # Get IPv6 address
-    IPV6=$(hcloud server describe "$SERVER_NAME" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/:1/g')
+    IPV6=$(hcloud server describe "$SERVER_NAME" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/::1/g')
     if [[ -z "$IPV6" ]]; then
         log_error "Could not retrieve IPv6 address for server '$SERVER_NAME'"
         exit 1
