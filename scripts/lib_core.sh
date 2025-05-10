@@ -90,7 +90,12 @@ ensure_command() {
 ensure_env_var() {
     local var_name="$1"
     local error_message="${2:-Environment variable '${var_name}' is not set or is empty.}"
-    if [ -z "${!var_name}" ]; then # Indirect expansion
+    local var_value
+    
+    # Use eval to get the value of the variable by name
+    eval "var_value=\${$var_name:-}"
+    
+    if [ -z "$var_value" ]; then
         log_error "$error_message"
         exit 1 # Or return 1
     fi

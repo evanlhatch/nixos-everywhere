@@ -36,6 +36,10 @@ DEFAULT_DEPLOY_METHOD                := "convert" # 'convert' or 'direct'
 # Scripts directory
 SCRIPTS_DIR := "./scripts"
 
+# --- Helper Functions ---
+# Generates a random 5-character suffix.
+random_suffix := "test"
+
 # --- Core Targets ---
 
 # Check local dependencies
@@ -94,14 +98,14 @@ provision server_name flake_uri \
 # Usage: just destroy server_name="my-server"
 destroy server_name:
     @echo "Attempting to destroy server '{{server_name}}'..."
-    @HCLOUD_TOKEN="${HCLOUD_TOKEN}" hcloud server delete "{{server_name}}" \
+    @hcloud server delete "{{server_name}}" \
         || echo "Failed to delete server '{{server_name}}'. It might not exist or an error occurred."
 
 # SSH into a provisioned server
 # Usage: just ssh server_name="my-server" [ssh_user="root"]
 ssh server_name ssh_user=DEFAULT_NIXOS_SSH_USER:
     @echo "Attempting to SSH into server '{{server_name}}' as user '{{ssh_user}}'..."
-    @SERVER_IP=$$(HCLOUD_TOKEN="${HCLOUD_TOKEN}" hcloud server ip "{{server_name}}"); \
+    @SERVER_IP=$(hcloud server ip "{{server_name}}"); \
     if [ -z "$$SERVER_IP" ]; then \
         echo "Error: Could not retrieve IP address for server '{{server_name}}'."; \
         echo "Ensure the server exists and is running."; \
@@ -114,23 +118,28 @@ ssh server_name ssh_user=DEFAULT_NIXOS_SSH_USER:
 # Usage: just logs server_name="my-server" [ssh_user="root"]
 logs server_name ssh_user=DEFAULT_NIXOS_SSH_USER:
     @echo "Fetching cloud-init logs from server '{{server_name}}'..."
-    @SERVER_IP=$$(HCLOUD_TOKEN="${HCLOUD_TOKEN}" hcloud server ip "{{server_name}}"); \
+    @SERVER_IP=$(hcloud server ip "{{server_name}}"); \
     if [ -z "$$SERVER_IP" ]; then \
         echo "Error: Could not retrieve IP address for server '{{server_name}}'."; \
         exit 1; \
     fi; \
     echo "Connecting to $$SERVER_IP to fetch logs..."; \
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null {{ssh_user}}@$$SERVER_IP \
-        "echo '--- /var/log/cloud-init-output.log ---'; sudo cat /var/log/cloud-init-output.log || echo 'Failed to cat /var/log/cloud-init-output.log'; \
-         echo '\n--- /var/log/nixos-conversion-detailed.log (if convert method used) ---'; sudo cat /var/log/nixos-conversion-detailed.log || echo 'No nixos-conversion-detailed.log found.'; \
-         echo '\n--- /var/log/nixos-everywhere.log (if conversion script created it) ---'; sudo cat /var/log/nixos-everywhere.log || echo 'No nixos-everywhere.log found.'; \
-         echo '\n--- journalctl -u cloud-init ---'; sudo journalctl -u cloud-init --no-pager -n 50 || echo 'Failed to get cloud-init journal.'; \
-         echo '\n--- journalctl -u cloud-final ---'; sudo journalctl -u cloud-final --no-pager -n 50 || echo 'Failed to get cloud-final journal.'"
+        "echo '--- /var/log/cloud-init-output.log ---'; \
+         sudo cat /var/log/cloud-init-output.log || echo 'Failed to cat /var/log/cloud-init-output.log'; \
+         echo '\n--- /var/log/nixos-conversion-detailed.log (if convert method used) ---'; \
+         sudo cat /var/log/nixos-conversion-detailed.log || echo 'No nixos-conversion-detailed.log found.'; \
+         echo '\n--- /var/log/nixos-everywhere.log (if conversion script created it) ---'; \
+         sudo cat /var/log/nixos-everywhere.log || echo 'No nixos-everywhere.log found.'; \
+         echo '\n--- journalctl -u cloud-init ---'; \
+         sudo journalctl -u cloud-init --no-pager -n 50 || echo 'Failed to get cloud-init journal.'; \
+         echo '\n--- journalctl -u cloud-final ---'; \
+         sudo journalctl -u cloud-final --no-pager -n 50 || echo 'Failed to get cloud-final journal.'"
 
 # List active Hetzner servers
 list-servers:
     @echo "Listing Hetzner Cloud servers..."
-    @HCLOUD_TOKEN="${HCLOUD_TOKEN}" hcloud server list || echo "Failed to list servers. Make sure HCLOUD_TOKEN is set."
+    @hcloud server list || echo "Failed to list servers. Make sure HCLOUD_TOKEN is set."
 
 # Default target: Run check-deps and show help
 default:

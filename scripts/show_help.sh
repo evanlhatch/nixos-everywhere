@@ -1,16 +1,45 @@
 #!/usr/bin/env bash
 # scripts/show_help.sh
-# Shows help information for the NixOS on Hetzner deployment system.
+# Displays help information for the NixOS on Hetzner project.
 
-echo "NixOS on Hetzner: Refactored Deployment"
-echo ""
-echo "Available commands:"
-just --list
-echo ""
-echo "Common Workflows:"
-echo "  1. Ensure .env is configured with HCLOUD_TOKEN and HETZNER_SSH_KEY_NAME_OR_FINGERPRINT."
-echo "  2. Check dependencies: just check-deps"
-echo "  3. Provision a server: just provision server_name=\"my-test\" flake_uri=\"github:your/flake#host\""
-echo "  4. Monitor logs: just logs server_name=\"my-test\""
-echo "  5. SSH into server: just ssh server_name=\"my-test\""
-echo "  6. Destroy server: just destroy server_name=\"my-test\""
+cat << EOF
+NixOS on Hetzner: Refactored Deployment
+=======================================
+
+This project provides a streamlined framework for provisioning NixOS servers on Hetzner Cloud.
+
+Common Commands:
+---------------
+
+  just check-deps
+    Check for required dependencies.
+
+  just provision server_name="my-nixos-server" flake_uri="github:yourusername/yourflake#yourNixosHost"
+    Provision a new server with the specified name and Flake URI.
+    Optional parameters:
+      deploy_method="convert"    # Method to use (convert or direct)
+      server_type="cpx11"        # Hetzner server type
+      base_image="debian-12"     # Base image for conversion
+      location="nbg1"            # Server location
+      ssh_key_name="your-key"    # SSH key name in Hetzner
+
+  just list-servers
+    List all servers in your Hetzner Cloud project.
+
+  just ssh server_name="my-nixos-server" [ssh_user="root"]
+    SSH into a provisioned server.
+
+  just logs server_name="my-nixos-server" [ssh_user="root"]
+    Fetch cloud-init and conversion logs from a server.
+
+  just destroy server_name="my-nixos-server"
+    Destroy a server.
+
+Important Notes:
+--------------
+- The nixos-everywhere.sh script must be hosted at a publicly accessible URL.
+- The URL is configured in config/nixos.env as NIXOS_EVERYWHERE_SCRIPT_URL.
+- Keep the remote repository up to date with any changes to the script.
+
+For more information, see the README.md file.
+EOF

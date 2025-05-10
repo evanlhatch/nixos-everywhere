@@ -40,9 +40,8 @@ log_info "--- Hetzner Provisioning Script Started ---"
 # HETZNER_LABELS (semicolon-separated key=value pairs)
 # HETZNER_ENABLE_IPV4 (true or false, defaults to true if not specified)
 #
-# Configuration for how nixos-everywhere.sh is sourced by the cloud-init wrapper:
-# NIXOS_EVERYWHERE_LOCAL_PATH (local path to nixos-everywhere.sh in this project, if embedding)
-# NIXOS_EVERYWHERE_REMOTE_URL (URL to download nixos-everywhere.sh from)
+# Configuration for nixos-everywhere.sh URL:
+# NIXOS_EVERYWHERE_SCRIPT_URL (URL to download nixos-everywhere.sh from)
 # ---
 
 # Validate critical environment variables
@@ -71,6 +70,14 @@ export NIXOS_FLAKE_HOST_ATTR_FOR_GEN="${EXTRACTED_FLAKE_ATTR}" # The part after 
 : "${HOSTNAME_INIT_ENV:=${NIXOS_FLAKE_HOST_ATTR_FOR_GEN}}" # Default to the flake host attribute
 export HOSTNAME_INIT_ENV # Ensure it's exported for cloud_init_generator
 
+# Get the URL for nixos-everywhere.sh
+: "${NIXOS_EVERYWHERE_SCRIPT_URL:=$(grep -E "^NIXOS_EVERYWHERE_SCRIPT_URL=" "$(dirname "$0")/../config/nixos.env" | cut -d= -f2- | tr -d '"')}"
+if [[ -z "$NIXOS_EVERYWHERE_SCRIPT_URL" ]]; then
+    log_error "NIXOS_EVERYWHERE_SCRIPT_URL is not set. Please set it in config/nixos.env or as an environment variable."
+    exit 1
+fi
+export NIXOS_EVERYWHERE_REMOTE_URL_CONFIG="$NIXOS_EVERYWHERE_SCRIPT_URL"
+
 log_info "Server Name: ${HETZNER_SERVER_NAME}"
 log_info "Server Type: ${HETZNER_SERVER_TYPE}"
 log_info "Location: ${HETZNER_LOCATION}"
@@ -79,8 +86,8 @@ log_info "Deployment Method: ${DEPLOY_METHOD}"
 log_info "Flake URL part: ${NIXOS_FLAKE_URI_FOR_GEN}"
 log_info "Flake Host Attribute: ${NIXOS_FLAKE_HOST_ATTR_FOR_GEN}"
 log_info "Effective Hostname for Init: ${HOSTNAME_INIT_ENV}"
+log_info "NixOS-Everywhere Script URL: ${NIXOS_EVERYWHERE_REMOTE_URL_CONFIG}"
 [[ "$DEPLOY_METHOD" == "convert" ]] && log_info "Base Image (for conversion): ${HETZNER_BASE_IMAGE}"
-
 
 # --- Fetch SSH Public Key from Hetzner Cloud ---
 log_info "Fetching public key content for Hetzner SSH key: '${HETZNER_SSH_KEY_NAME}'..."
@@ -93,11 +100,6 @@ if [[ -z "$HETZNER_SSH_KEY_PUBLIC_CONTENT" || "$HETZNER_SSH_KEY_PUBLIC_CONTENT" 
 fi
 log_info "Successfully fetched SSH public key content."
 export HETZNER_SSH_KEY_PUBLIC_CONTENT # Export for cloud_init_generator.sh
-
-# --- Prepare variables for nixos-everywhere.sh sourcing by cloud-init wrapper ---
-# These tell cloud_init_generator how to instruct nixos_convert_on_debian.sh to get nixos-everywhere.sh
-export NIXOS_EVERYWHERE_LOCAL_PATH_CONFIG="${NIXOS_EVERYWHERE_LOCAL_PATH:-}" # From justfile/config
-export NIXOS_EVERYWHERE_REMOTE_URL_CONFIG="${NIXOS_EVERYWHERE_REMOTE_URL:-}" # From justfile/config
 
 # --- Generate Cloud-Init User Data ---
 log_info "Generating cloud-init user data..."
