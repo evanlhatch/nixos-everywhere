@@ -1,0 +1,42 @@
+set dotenv-load := true
+
+SCRIPTS_DIR := "./scripts"
+
+# Minimal Default Variables needed for the recipe definition
+DEFAULT_NIXOS_SSH_USER               := env_var_or_default('NIXOS_SSH_USER', 'root')
+DEFAULT_NIXOS_SSH_AUTHORIZED_KEYS    := env_var_or_default('NIXOS_SSH_AUTHORIZED_KEYS', '')
+DEFAULT_NIXOS_CHANNEL_ENV            := env_var_or_default('NIXOS_DEFAULT_NIXOS_CHANNEL_ENV', 'nixos-24.05')
+DEFAULT_HOSTNAME_INIT_ENV            := env_var_or_default('NIXOS_DEFAULT_HOSTNAME_INIT_ENV', 'nixos-server')
+DEFAULT_TIMEZONE_INIT_ENV            := env_var_or_default('NIXOS_DEFAULT_TIMEZONE_INIT_ENV', 'Etc/UTC')
+DEFAULT_LOCALE_LANG_INIT_ENV         := env_var_or_default('NIXOS_DEFAULT_LOCALE_LANG_INIT_ENV', 'en_US.UTF-8')
+DEFAULT_STATE_VERSION_INIT_ENV       := env_var_or_default('NIXOS_DEFAULT_STATE_VERSION_INIT_ENV', '24.05')
+DEFAULT_INFISICAL_CLIENT_ID          := env_var_or_default('INFISICAL_CLIENT_ID', '')
+DEFAULT_INFISICAL_CLIENT_SECRET      := env_var_or_default('INFISICAL_CLIENT_SECRET', '')
+DEFAULT_INFISICAL_BOOTSTRAP_ADDRESS  := env_var_or_default('INFISICAL_BOOTSTRAP_ADDRESS', 'https://app.infisical.com')
+
+# Infect an existing Debian server with NixOS
+infect-debian server_ip flake_uri \
+    ssh_user=DEFAULT_NIXOS_SSH_USER \
+    nixos_ssh_keys=DEFAULT_NIXOS_SSH_AUTHORIZED_KEYS \
+    nixos_channel=DEFAULT_NIXOS_CHANNEL_ENV \
+    target_hostname_init=DEFAULT_HOSTNAME_INIT_ENV \
+    timezone_init=DEFAULT_TIMEZONE_INIT_ENV \
+    locale_lang_init=DEFAULT_LOCALE_LANG_INIT_ENV \
+    state_version_init=DEFAULT_STATE_VERSION_INIT_ENV \
+    infisical_client_id=DEFAULT_INFISICAL_CLIENT_ID \
+    infisical_client_secret=DEFAULT_INFISICAL_CLIENT_SECRET \
+    infisical_bootstrap_address=DEFAULT_INFISICAL_BOOTSTRAP_ADDRESS:
+@echo ">>> Orchestrating Debian to NixOS infection via script (Minimal Justfile)..."
+@export INFECT_SERVER_IP="{{server_ip}}"
+@export INFECT_SSH_USER="{{ssh_user}}"
+@export INFECT_FLAKE_URI="{{flake_uri}}"
+@export INFECT_NIXOS_SSH_KEYS="{{nixos_ssh_keys}}"
+@export INFECT_NIXOS_CHANNEL="{{nixos_channel}}"
+@export INFECT_HOSTNAME_INIT="{{target_hostname_init}}"
+@export INFECT_TIMEZONE_INIT="{{timezone_init}}"
+@export INFECT_LOCALE_LANG_INIT="{{locale_lang_init}}"
+@export INFECT_STATE_VERSION_INIT="{{state_version_init}}"
+@export INFECT_INFISICAL_CLIENT_ID="{{infisical_client_id}}"
+@export INFECT_INFISICAL_CLIENT_SECRET="{{infisical_client_secret}}"
+@export INFECT_INFISICAL_BOOTSTRAP_ADDRESS="{{infisical_bootstrap_address}}"
+@./scripts/infect_debian_server.sh

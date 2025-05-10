@@ -24,11 +24,11 @@ DEFAULT_HETZNER_ENABLE_IPV4          := env_var_or_default('HETZNER_DEFAULT_ENAB
 # NixOS Configuration Defaults
 DEFAULT_NIXOS_FLAKE_URI              := env_var_or_default('NIXOS_DEFAULT_FLAKE_URI', 'github:evanlhatch/k3s-nixos-config')
 DEFAULT_NIXOS_TARGET_HOST_ATTR       := env_var_or_default('NIXOS_DEFAULT_TARGET_HOST_ATTR', 'hetznerK3sControlTemplate')
-DEFAULT_NIXOS_CHANNEL_ENV            := env_var_or_default('NIXOS_DEFAULT_NIXOS_CHANNEL_ENV', 'nixos-24.05')
+DEFAULT_NIXOS_CHANNEL_ENV            := env_var_or_default('NIXOS_DEFAULT_NIXOS_CHANNEL_ENV', 'nixos-24.11')
 DEFAULT_HOSTNAME_INIT_ENV            := env_var_or_default('NIXOS_DEFAULT_HOSTNAME_INIT_ENV', 'nixos-server')
 DEFAULT_TIMEZONE_INIT_ENV            := env_var_or_default('NIXOS_DEFAULT_TIMEZONE_INIT_ENV', 'Etc/UTC')
 DEFAULT_LOCALE_LANG_INIT_ENV         := env_var_or_default('NIXOS_DEFAULT_LOCALE_LANG_INIT_ENV', 'en_US.UTF-8')
-DEFAULT_STATE_VERSION_INIT_ENV       := env_var_or_default('NIXOS_DEFAULT_STATE_VERSION_INIT_ENV', '24.05')
+DEFAULT_STATE_VERSION_INIT_ENV       := env_var_or_default('NIXOS_DEFAULT_STATE_VERSION_INIT_ENV', '24.11')
 DEFAULT_NIXOS_SSH_USER               := env_var_or_default('NIXOS_SSH_USER', 'root')
 DEFAULT_NIXOS_SSH_AUTHORIZED_KEYS    := env_var_or_default('NIXOS_SSH_AUTHORIZED_KEYS', '') # For infect-debian; ensure this env var is set with your public keys
 
@@ -44,8 +44,6 @@ DEFAULT_DEPLOY_METHOD                := "convert" # 'convert' or 'direct'
 SCRIPTS_DIR := "./scripts"
 
 # --- Helper Functions ---
-# Generates a random 5-character suffix.
-random_suffix := "test"
 
 # --- Core Targets ---
 
@@ -59,9 +57,8 @@ help:
     @{{SCRIPTS_DIR}}/show_help.sh
 
 # Provision a new server on Hetzner
-# Usage: just provision server_name="my-server" flake_uri="github:user/flake#host" [deploy_method="convert"] [server_type="cpx21"] ...
-provision server_name flake_uri \
-    deploy_method=DEFAULT_DEPLOY_METHOD \
+# Usage: just provision server_name="my-server" flake_uri="github:user/flake#host" deploy_method="convert" [server_type="cpx21"] ...
+provision server_name flake_uri deploy_method=DEFAULT_DEPLOY_METHOD \
     server_type=DEFAULT_HETZNER_SERVER_TYPE \
     base_image=DEFAULT_HETZNER_BASE_IMAGE \
     location=DEFAULT_HETZNER_LOCATION \
@@ -140,6 +137,12 @@ ssh server_name ssh_user=DEFAULT_NIXOS_SSH_USER use_ipv4=DEFAULT_HETZNER_ENABLE_
         ssh {{ssh_user}}@[$$IPV6]; \
     fi
 
+# SSH into a provisioned server via Tailscale
+# Usage: just ssh-ts server_name="my-server" [ssh_user="root"]
+ssh-ts server_name ssh_user=DEFAULT_NIXOS_SSH_USER:
+    @echo "Attempting to SSH into server '{{server_name}}' via Tailscale as user '{{ssh_user}}'..."
+    @ssh {{ssh_user}}@{{server_name}}
+
 # Fetch cloud-init logs from a server
 # Usage: just logs server_name="my-server" [ssh_user="root"] [use_ipv4="true"]
 logs server_name ssh_user=DEFAULT_NIXOS_SSH_USER use_ipv4=DEFAULT_HETZNER_ENABLE_IPV4:
@@ -153,11 +156,10 @@ list-servers:
     @hcloud server list || echo "Failed to list servers. Make sure HCLOUD_TOKEN is set."
 
 # Infect an existing Debian server with NixOS
-# Usage: just infect-debian server_ip="1.2.3.4" flake_uri="github:user/flake#host" [ssh_user="root"] [nixos_ssh_keys="<key_content>"] [...]
-# Ensure NIXOS_SSH_AUTHORIZED_KEYS environment variable is set if not passing nixos_ssh_keys directly.
-infect-debian server_ip flake_uri \
+# Usage: just infect-debian server_ip="1.2.3.4" flake_uri="github:user/flake#host" nixos_ssh_keys="<key_content>" [ssh_user="root"] [...]
+# IMPORTANT: You must manually export INFECT_* environment variables before running this command.
+infect-debian server_ip flake_uri nixos_ssh_keys \
     ssh_user=DEFAULT_NIXOS_SSH_USER \
-    nixos_ssh_keys=DEFAULT_NIXOS_SSH_AUTHORIZED_KEYS \
     nixos_channel=DEFAULT_NIXOS_CHANNEL_ENV \
     target_hostname_init=DEFAULT_HOSTNAME_INIT_ENV \
     timezone_init=DEFAULT_TIMEZONE_INIT_ENV \
@@ -166,20 +168,24 @@ infect-debian server_ip flake_uri \
     infisical_client_id=DEFAULT_INFISICAL_CLIENT_ID \
     infisical_client_secret=DEFAULT_INFISICAL_CLIENT_SECRET \
     infisical_bootstrap_address=DEFAULT_INFISICAL_BOOTSTRAP_ADDRESS:
-    @echo ">>> Orchestrating Debian to NixOS infection via script..."
-    @export INFECT_SERVER_IP="{{server_ip}}"
-    @export INFECT_SSH_USER="{{ssh_user}}"
-    @export INFECT_FLAKE_URI="{{flake_uri}}"
-    @export INFECT_NIXOS_SSH_KEYS="{{nixos_ssh_keys}}"
-    @export INFECT_NIXOS_CHANNEL="{{nixos_channel}}"
-    @export INFECT_HOSTNAME_INIT="{{target_hostname_init}}"
-    @export INFECT_TIMEZONE_INIT="{{timezone_init}}"
-    @export INFECT_LOCALE_LANG_INIT="{{locale_lang_init}}"
-    @export INFECT_STATE_VERSION_INIT="{{state_version_init}}"
-    @export INFECT_INFISICAL_CLIENT_ID="{{infisical_client_id}}"
-    @export INFECT_INFISICAL_CLIENT_SECRET="{{infisical_client_secret}}"
-    @export INFECT_INFISICAL_BOOTSTRAP_ADDRESS="{{infisical_bootstrap_address}}"
-    @bash {{SCRIPTS_DIR}}/infect_debian
+    @echo ">>> Preparing to call infect_debian_server.sh."
+    @echo "    IMPORTANT: Ensure the following INFECT_... environment variables are set externally before running this command:"
+    @echo ""
+    @echo "    # Required environment variables (example values shown):"
+    @echo "    export INFECT_SERVER_IP=\"5.161.197.57\""
+    @echo "    export INFECT_SSH_USER=\"root\""
+    @echo "    export INFECT_FLAKE_URI=\"github:evanlhatch/k3s-nixos-config#hetznerK3sControlTemplate\""
+    @echo "    export INFECT_NIXOS_SSH_KEYS=\"your-ssh-public-key-here\"  # REQUIRED - must be provided"
+    @echo "    export INFECT_NIXOS_CHANNEL=\"nixos-24.11\""
+    @echo "    export INFECT_HOSTNAME_INIT=\"nixos-server\""
+    @echo "    export INFECT_TIMEZONE_INIT=\"Etc/UTC\""
+    @echo "    export INFECT_LOCALE_LANG_INIT=\"en_US.UTF-8\""
+    @echo "    export INFECT_STATE_VERSION_INIT=\"24.11\""
+    @echo "    export INFECT_INFISICAL_CLIENT_ID=\"your-client-id-if-needed\""
+    @echo "    export INFECT_INFISICAL_CLIENT_SECRET=\"your-client-secret-if-needed\""
+    @echo "    export INFECT_INFISICAL_BOOTSTRAP_ADDRESS=\"https://app.infisical.com\""
+    @echo ""
+    @bash {{SCRIPTS_DIR}}/infect_debian_server.sh
 
 # Default target: Run check-deps and show help
 default:

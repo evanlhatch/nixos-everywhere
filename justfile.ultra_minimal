@@ -1,0 +1,18 @@
+set dotenv-load := true
+
+# Minimal test recipe
+infect-debian server_ip flake_uri nixos_ssh_keys="ssh-rsa DEFAULT_KEY":
+    echo "Testing minimal justfile with parameters"
+    export INFECT_SERVER_IP="{{server_ip}}"
+    export INFECT_FLAKE_URI="{{flake_uri}}"
+    export INFECT_NIXOS_SSH_KEYS="{{nixos_ssh_keys}}"
+    export INFECT_SSH_USER="root"
+    export INFECT_NIXOS_CHANNEL="nixos-24.05"
+    export INFECT_HOSTNAME_INIT="nixos-infected"
+    export INFECT_TIMEZONE_INIT="Etc/UTC"
+    export INFECT_LOCALE_LANG_INIT="en_US.UTF-8"
+    export INFECT_STATE_VERSION_INIT="24.05"
+    export INFECT_INFISICAL_CLIENT_ID=""
+    export INFECT_INFISICAL_CLIENT_SECRET=""
+    export INFECT_INFISICAL_BOOTSTRAP_ADDRESS="https://app.infisical.com"
+    bash scripts/infect_debian
