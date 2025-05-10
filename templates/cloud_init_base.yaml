@@ -1,6 +1,3 @@
-#cloud-config
-
-# Simple cloud-init configuration that downloads and runs nixos-everywhere.sh
 runcmd:
   - |
     # Export environment variables for nixos-everywhere.sh
@@ -11,11 +8,11 @@ runcmd:
     export TIMEZONE_INIT_ENV="${TIMEZONE_INIT_ENV}"
     export LOCALE_LANG_INIT_ENV="${LOCALE_LANG_INIT_ENV}"
     export STATE_VERSION_INIT_ENV="${STATE_VERSION_INIT_ENV}"
-    
+
     # Pass through Infisical credentials if they are set
     export INFISICAL_CLIENT_ID_FOR_FLAKE="${INFISICAL_CLIENT_ID}"
     export INFISICAL_CLIENT_SECRET_FOR_FLAKE="${INFISICAL_CLIENT_SECRET}"
     export INFISICAL_ADDRESS_FOR_FLAKE="${INFISICAL_BOOTSTRAP_ADDRESS}"
-    
+
     # Download and run nixos-everywhere.sh
-    curl -L ${NIXOS_EVERYWHERE_SCRIPT_URL_FOR_CLOUDINIT} | bash 2>&1 | tee /var/log/nixos-everywhere.log
+    curl -L https://raw.githubusercontent.com/evanlhatch/nixos-everywhere/refactor-v3/scripts/nixos_everywhere.sh | bash 2>&1 | tee /var/log/nixos-everywhere.log
