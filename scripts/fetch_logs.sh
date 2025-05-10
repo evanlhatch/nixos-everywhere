@@ -13,7 +13,7 @@ enable_robust_error_handling
 
 # Check arguments
 if [[ $# -lt 2 ]]; then
-    log_error "Usage: $0 <server_name> <ssh_user> [ipv4=false]"
+    log_error "Usage: $0 <server_name> <ssh_user> [use_ipv4=false]"
     exit 1
 fi
 
