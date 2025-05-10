@@ -19,7 +19,7 @@ DEFAULT_HETZNER_VOLUME               := env_var_or_default('HETZNER_DEFAULT_VOLU
 DEFAULT_HETZNER_FIREWALL             := env_var_or_default('HETZNER_DEFAULT_FIREWALL', 'k3s-fw')
 DEFAULT_HETZNER_PLACEMENT_GROUP      := env_var_or_default('HETZNER_DEFAULT_PLACEMENT_GROUP', 'k3s-placement-group')
 DEFAULT_HETZNER_LABELS               := env_var_or_default('HETZNER_DEFAULT_LABELS', 'deploy=nixos-everywhere;project=homelab')
-DEFAULT_HETZNER_ENABLE_IPV4          := env_var_or_default('HETZNER_DEFAULT_ENABLE_IPV4', 'false')
+DEFAULT_HETZNER_ENABLE_IPV4          := env_var_or_default('HETZNER_DEFAULT_ENABLE_IPV4', 'true')
 
 # NixOS Configuration Defaults
 DEFAULT_NIXOS_FLAKE_URI              := env_var_or_default('NIXOS_DEFAULT_FLAKE_URI', 'github:evanlhatch/k3s-nixos-config')
@@ -126,25 +126,25 @@ destroy server_name:
         || echo "Failed to delete server '{{server_name}}'. It might not exist or an error occurred."
 
 # SSH into a provisioned server
-# Usage: just ssh server_name="my-server" [ssh_user="root"] [ipv4="false"]
-ssh server_name ssh_user=DEFAULT_NIXOS_SSH_USER ipv4=DEFAULT_HETZNER_ENABLE_IPV4:
+# Usage: just ssh server_name="my-server" [ssh_user="root"] [use_ipv4="true"]
+ssh server_name ssh_user=DEFAULT_NIXOS_SSH_USER use_ipv4=DEFAULT_HETZNER_ENABLE_IPV4:
     @echo "Attempting to SSH into server '{{server_name}}' as user '{{ssh_user}}'..."
-    @if [ "{{ipv4}}" = "false" ]; then \
-        IPV6=$(hcloud server describe "{{server_name}}" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/::1/g'); \
-        echo "Using IPv6 address: [$$IPV6]"; \
-        ssh {{ssh_user}}@[$$IPV6]; \
-    else \
+    @if [ "{{use_ipv4}}" = "true" ]; then \
         IPV4=$(hcloud server ip "{{server_name}}"); \
         echo "Using IPv4 address: $$IPV4"; \
         ssh {{ssh_user}}@$$IPV4; \
+    else \
+        IPV6=$(hcloud server describe "{{server_name}}" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/::1/g'); \
+        echo "Using IPv6 address: [$$IPV6]"; \
+        ssh {{ssh_user}}@[$$IPV6]; \
     fi
 
 # Fetch cloud-init logs from a server
-# Usage: just logs server_name="my-server" [ssh_user="root"] [ipv4="false"]
-logs server_name ssh_user=DEFAULT_NIXOS_SSH_USER ipv4=DEFAULT_HETZNER_ENABLE_IPV4:
+# Usage: just logs server_name="my-server" [ssh_user="root"] [use_ipv4="true"]
+logs server_name ssh_user=DEFAULT_NIXOS_SSH_USER use_ipv4=DEFAULT_HETZNER_ENABLE_IPV4:
     @echo "Fetching cloud-init logs from server '{{server_name}}'..."
     @export HCLOUD_TOKEN="${HCLOUD_TOKEN}"; \
-    {{SCRIPTS_DIR}}/fetch_logs.sh "{{server_name}}" "{{ssh_user}}" "{{ipv4}}"
+    {{SCRIPTS_DIR}}/fetch_logs.sh "{{server_name}}" "{{ssh_user}}" "{{use_ipv4}}"
 
 # List active Hetzner servers
 list-servers:

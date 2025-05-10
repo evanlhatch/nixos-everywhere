@@ -21,19 +21,19 @@ SERVER_NAME="$1"
 SSH_USER="$2"
 USE_IPV4="${3:-false}"
 
-log_info "Fetching cloud-init logs from server '$SERVER_NAME' as user '$SSH_USER'..."
+log_info "Fetching cloud-init logs from server '$SERVER_NAME' as user '$SSH_USER' (IPv4: $USE_IPV4)..."
 
-if [[ "$USE_IPV4" == "false" ]]; then
-    # Get IPv6 address
-    IPV6=$(hcloud server describe "$SERVER_NAME" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/::1/g')
-    if [[ -z "$IPV6" ]]; then
-        log_error "Could not retrieve IPv6 address for server '$SERVER_NAME'"
+if [[ "$USE_IPV4" == "true" ]]; then
+    # Get IPv4 address
+    IPV4=$(hcloud server ip "$SERVER_NAME")
+    if [[ -z "$IPV4" ]]; then
+        log_error "Could not retrieve IPv4 address for server '$SERVER_NAME'"
         exit 1
     fi
-    log_info "Using IPv6 address: [$IPV6]"
+    log_info "Using IPv4 address: $IPV4"
     
     # SSH to the server and fetch logs
-    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@[$IPV6]" \
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$IPV4" \
         "echo '--- /var/log/cloud-init-output.log ---'; \
          sudo cat /var/log/cloud-init-output.log || echo 'Failed to cat /var/log/cloud-init-output.log'; \
          echo '--- /var/log/nixos-conversion-detailed.log ---'; \
@@ -45,16 +45,16 @@ if [[ "$USE_IPV4" == "false" ]]; then
          echo '--- journalctl -u cloud-final ---'; \
          sudo journalctl -u cloud-final --no-pager -n 50 || echo 'Failed to get cloud-final journal.'"
 else
-    # Get IPv4 address
-    IPV4=$(hcloud server ip "$SERVER_NAME")
-    if [[ -z "$IPV4" ]]; then
-        log_error "Could not retrieve IPv4 address for server '$SERVER_NAME'"
+    # Get IPv6 address
+    IPV6=$(hcloud server describe "$SERVER_NAME" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/::1/g')
+    if [[ -z "$IPV6" ]]; then
+        log_error "Could not retrieve IPv6 address for server '$SERVER_NAME'"
         exit 1
     fi
-    log_info "Using IPv4 address: $IPV4"
+    log_info "Using IPv6 address: [$IPV6]"
     
     # SSH to the server and fetch logs
-    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$IPV4" \
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@[$IPV6]" \
         "echo '--- /var/log/cloud-init-output.log ---'; \
          sudo cat /var/log/cloud-init-output.log || echo 'Failed to cat /var/log/cloud-init-output.log'; \
          echo '--- /var/log/nixos-conversion-detailed.log ---'; \
