@@ -155,8 +155,8 @@ ssh server_name ssh_user=DEFAULT_NIXOS_SSH_USER ipv4=DEFAULT_HETZNER_ENABLE_IPV4
 logs server_name ssh_user=DEFAULT_NIXOS_SSH_USER ipv4=DEFAULT_HETZNER_ENABLE_IPV4:
     @echo "Fetching cloud-init logs from server '{{server_name}}'..."
     @if [ "{{ipv4}}" = "false" ]; then \
-        SERVER_IP=$(hcloud server describe "{{server_name}}" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/:1/g'); \
-        echo "Using IPv6 address: [${SERVER_IP}]"; \
+        SERVER_IP=$$(hcloud server describe "{{server_name}}" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/:1/g'); \
+        echo "Using IPv6 address: [$$SERVER_IP]"; \
         if [ -z "$$SERVER_IP" ]; then \
             echo "Error: Could not retrieve IPv6 address for server '{{server_name}}'."; \
             exit 1; \
@@ -174,7 +174,7 @@ logs server_name ssh_user=DEFAULT_NIXOS_SSH_USER ipv4=DEFAULT_HETZNER_ENABLE_IPV
              echo '\n--- journalctl -u cloud-final ---'; \
              sudo journalctl -u cloud-final --no-pager -n 50 || echo 'Failed to get cloud-final journal.'"; \
     else \
-        SERVER_IP=$(hcloud server ip "{{server_name}}"); \
+        SERVER_IP=$$(hcloud server ip "{{server_name}}"); \
         if [ -z "$$SERVER_IP" ]; then \
             echo "Error: Could not retrieve IPv4 address for server '{{server_name}}'."; \
             exit 1; \
