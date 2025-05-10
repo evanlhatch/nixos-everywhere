@@ -196,8 +196,18 @@ log_info "hcloud server create ${HCLOUD_ARGS[*]}" # Note: user-data content won'
 
 if hcloud server create "${HCLOUD_ARGS[@]}"; then
     log_info "Server '${HETZNER_SERVER_NAME}' creation initiated successfully!"
-    SERVER_IP=$(hcloud server ip "${HETZNER_SERVER_NAME}")
-    log_info "Server IP: ${SERVER_IP:-Not available yet}"
+    
+    # Get server IP - handle IPv6-only servers
+    if [[ "${HETZNER_ENABLE_IPV4:-true}" == "false" ]]; then
+        # For IPv6-only servers, get the IPv6 address
+        SERVER_IP=$(hcloud server describe "${HETZNER_SERVER_NAME}" -o json | jq -r '.public_net.ipv6.ip' | sed 's/::\/64/:1/g')
+        log_info "Server IPv6: ${SERVER_IP:-Not available yet}"
+    else
+        # For servers with IPv4, use the standard command
+        SERVER_IP=$(hcloud server ip "${HETZNER_SERVER_NAME}")
+        log_info "Server IPv4: ${SERVER_IP:-Not available yet}"
+    fi
+    
     log_info "Cloud-init and NixOS setup will now proceed on the server."
     log_info "Monitor progress using: just logs server_name=\"${HETZNER_SERVER_NAME}\""
     log_info "Once setup is complete, SSH using: just ssh server_name=\"${HETZNER_SERVER_NAME}\""
