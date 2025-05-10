@@ -1,3 +1,24 @@
+# Environment variables and secrets
 .env
 .envrc
-populated
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Populated scripts directory (for testing)
+populated/
+
+# Local test files
+local_test/*
+!local_test/.gitkeep
+
+# OS-specific files
+.DS_Store
+Thumbs.db

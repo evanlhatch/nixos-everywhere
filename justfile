@@ -1,258 +1,174 @@
-# Justfile for Hetzner + nixos-everywhere provisioning
+# justfile
+# Main orchestrator for NixOS on Hetzner deployments.
 
-# --- Default Configuration ---
-# These can be overridden when calling a recipe, e.g., just create-server server_type="cpx31"
+# --- Configuration Loading ---
+# Attempt to load .env file if it exists. Variables in .env take precedence.
+# Using a subshell to check for file existence and then source it.
+# This ensures 'just' doesn't fail if .env is missing.
+export $(shell test -f .env && cat .env | sed 's/#.*//g; /^\s*$$/d' | xargs)
 
-# Hetzner Server Defaults
-DEFAULT_SERVER_TYPE         := "cpx21"
-DEFAULT_SERVER_IMAGE        := "debian-12"  # Initial OS for infection by nixos-everywhere.sh
-DEFAULT_SERVER_LOCATION     := "ash"        # Ashburn, VA
-DEFAULT_SSH_KEY_NAME        := "blade-nixos SSH Key" # Name of your SSH key already in Hetzner Cloud
-DEFAULT_PRIVATE_NETWORK     := "k3s-net"
-DEFAULT_VOLUME_NAME         := "volume-ash-1"
-DEFAULT_FIREWALL_NAME       := "k3s-fw"
-DEFAULT_PLACEMENT_GROUP     := "k3s-placement-group"
-DEFAULT_LABELS              := "deploy=nixos-everywhere;project=homelab" # Semicolon-separated labels
-DEFAULT_SSH_KEY             := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRoa3k+/c6nIFLQHo4XYROMFzRx8j+MoRcrt0FmH8/BxAPpDH55SFMM2CY46LEH14M/+W0baSHhQjX//PEL93P5iN3uIlf9+I6aQr8Fi4F3c5susHqGmIWGTIEridVhEqzOQKDv/S9L1K3sDbjMYBXFyYo95dTIzYaJoxFsBF6cwxuscnKM/vb3eidYctZ61GukFvIkUTMRhO2KsEbc4RCslpTCdYgu7nkHiyCJZW7e37bRJ4AJwnjjX5ObP648wQ2UA0PpYLBUr0JQK6iQTAjwIHLNJheHYaGRf4IHP6sp9YSeY/IqnKMd4aEQd64Too1wMIsWyez9SIwgcH4fyNT"
-
-# nixos-everywhere.sh Sourcing:
-# The provision_hetzner_node.sh script (called by create-server) will use these
-# to decide whether to embed a local nixos-everywhere.sh or download it.
-NIXOS_EVERYWHERE_LOCAL_PATH := "./nixos-everywhere.sh"  # Default local path to your installer script
-NIXOS_EVERYWHERE_REMOTE_URL := "https://raw.githubusercontent.com/evanlhatch/nixos-everywhere/main/nixos-everywhere.sh" # Fallback/default URL
-
-# Flake Source:
-# These define the default Flake to be deployed.
-DEFAULT_FLAKE_LOCATION      := "github:evanlhatch/k3s-nixos-config" # Default is your specified remote GitHub Flake URL
-DEFAULT_FLAKE_ATTRIBUTE     := "hetznerK3sControlTemplate" # Default Flake attribute to deploy
-
-# Defaults for environment variables passed to nixos-everywhere.sh via cloud-init
-# These are used by the provision_hetzner_node.sh script when constructing the cloud-init payload.
-DEFAULT_TARGET_NIXOS_CHANNEL  := "nixos-24.11"
-DEFAULT_TARGET_HOSTNAME_BASE  := "nixos" # Used by provision_hetzner_node.sh if server_name/target_hostname empty
-DEFAULT_TARGET_TIMEZONE       := "Etc/UTC"
-DEFAULT_TARGET_LOCALE         := "en_US.UTF-8"
-DEFAULT_TARGET_STATE_VERSION  := "24.11"
-
-# Infisical Bootstrap Credentials (expected to be in .env via direnv, or passed to just)
-# These are passed to provision_hetzner_node.sh, then to cloud-init for nixos-everywhere.sh
-INFISICAL_BOOTSTRAP_CLIENT_ID_ENV     := env_var_or_default('INFISICAL_BOOTSTRAP_CLIENT_ID', '')
-INFISICAL_BOOTSTRAP_CLIENT_SECRET_ENV := env_var_or_default('INFISICAL_BOOTSTRAP_CLIENT_SECRET', '')
-INFISICAL_BOOTSTRAP_ADDRESS_ENV       := env_var_or_default('INFISICAL_BOOTSTRAP_ADDRESS', 'https://app.infisical.com')
+# Load default configurations. .env variables can override these.
+# The order matters: later files can override earlier ones if variables conflict.
+# Common defaults first, then more specific ones.
+include config/common.env
+include config/nixos.env
+include config/hetzner.env
 
 
-# --- Hidden Helper Recipe ---
-_fetch_hcloud_token:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if ! command -v infisical &> /dev/null; then
-        echo "ERROR: infisical CLI not found. Please install and configure it." >&2; exit 1;
+# --- Aliases and Default Variables ---
+# These can be overridden by environment variables or command-line arguments to just.
+
+# Hetzner Server Defaults (from config/hetzner.env, can be overridden)
+DEFAULT_HETZNER_SERVER_NAME          := "nixos-{{ random_suffix() }}" # Ensures unique names if not specified
+DEFAULT_HETZNER_SERVER_TYPE          ?= HETZNER_DEFAULT_SERVER_TYPE
+DEFAULT_HETZNER_BASE_IMAGE           ?= HETZNER_DEFAULT_BASE_IMAGE # For conversion method
+DEFAULT_HETZNER_LOCATION             ?= HETZNER_DEFAULT_LOCATION
+DEFAULT_HETZNER_SSH_KEY_NAME         ?= HETZNER_SSH_KEY_NAME_OR_FINGERPRINT # From .env or config/hetzner.env
+
+# NixOS Configuration Defaults (from config/nixos.env)
+DEFAULT_NIXOS_FLAKE_URI              ?= NIXOS_DEFAULT_FLAKE_URI
+DEFAULT_NIXOS_TARGET_HOST_ATTR       ?= NIXOS_DEFAULT_TARGET_HOST_ATTR # Placeholder, user must provide full flake_uri usually
+DEFAULT_NIXOS_CHANNEL_ENV            ?= NIXOS_DEFAULT_NIXOS_CHANNEL_ENV
+DEFAULT_HOSTNAME_INIT_ENV            ?= NIXOS_DEFAULT_HOSTNAME_INIT_ENV
+DEFAULT_TIMEZONE_INIT_ENV            ?= NIXOS_DEFAULT_TIMEZONE_INIT_ENV
+DEFAULT_LOCALE_LANG_INIT_ENV         ?= NIXOS_DEFAULT_LOCALE_LANG_INIT_ENV
+DEFAULT_STATE_VERSION_INIT_ENV       ?= NIXOS_DEFAULT_STATE_VERSION_INIT_ENV
+DEFAULT_NIXOS_SSH_USER               ?= NIXOS_SSH_USER # From .env or config/nixos.env
+
+# Infisical (from .env or config/common.env)
+DEFAULT_INFISICAL_CLIENT_ID          ?= INFISICAL_CLIENT_ID
+DEFAULT_INFISICAL_CLIENT_SECRET      ?= INFISICAL_CLIENT_SECRET
+DEFAULT_INFISICAL_BOOTSTRAP_ADDRESS  ?= INFISICAL_BOOTSTRAP_ADDRESS
+
+# Deployment Method
+DEFAULT_DEPLOY_METHOD                := "convert" # 'convert' or 'direct'
+
+# Scripts directory
+SCRIPTS_DIR := "./scripts"
+
+# --- Helper Functions ---
+# Generates a random 5-character suffix.
+random_suffix := $(shell head /dev/urandom | tr -dc a-z0-9 | head -c 5)
+
+# --- Pre-flight Checks ---
+# Ensure HCLOUD_TOKEN is set
+_check_hcloud_token:
+    @if [ -z "{{HCLOUD_TOKEN}}" ]; then \
+        echo "Error: HCLOUD_TOKEN is not set. Please define it in your .env file or as an environment variable."; \
+        exit 1; \
     fi
-    # Ensure HETZNER_API_TOKEN is the correct secret name in Infisical
-    TOKEN=$(infisical secrets get HETZNER_API_TOKEN --plain)
-    if [[ -z "$TOKEN" ]]; then
-        echo "ERROR: Failed to retrieve HETZNER_API_TOKEN from Infisical. Is it set and accessible?" >&2; exit 1;
+    @echo "HCLOUD_TOKEN found."
+
+# Ensure SSH key name/fingerprint is configured for Hetzner
+_check_hetzner_ssh_key:
+    @if [ -z "{{DEFAULT_HETZNER_SSH_KEY_NAME}}" ]; then \
+        echo "Error: HETZNER_SSH_KEY_NAME_OR_FINGERPRINT is not set. Please define it in .env or config/hetzner.env."; \
+        echo "This should be the name or fingerprint of an SSH key already uploaded to your Hetzner Cloud project."; \
+        exit 1; \
     fi
-    echo -n "$TOKEN"
+    @echo "Hetzner SSH key name/fingerprint configured: {{DEFAULT_HETZNER_SSH_KEY_NAME}}"
 
-# --- Main Recipes ---
 
-# Creates a new Hetzner server by calling the provision_hetzner_node.sh helper script.
-# This helper script contains the main logic for fetching keys, constructing cloud-init,
-# and calling 'hcloud server create'.
-#
-# MANDATORY ARGUMENTS:
-#   server_name     - Unique name for the new server.
-#
-# OPTIONAL ARGUMENTS (see defaults above):
-#   flake_location  - URL for the Flake (default is your GitHub repo).
-#   flake_attribute - NixOS configuration attribute in the Flake (default: "hetznerK3sControlTemplate").
-#                     Can be set to "AUTO_HOSTNAME" for the helper script to use server_name.
-#   infisical_client_id, infisical_client_secret, infisical_address - For Infisical Agent bootstrap.
-#   ... (other server parameters like server_type, image, location, etc.) ...
-#
-# EXAMPLE USAGE:
-#   just create-server server_name="my-k3s-control-01"
-#   just create-server server_name="worker-bee" flake_attribute="hetznerK3sWorkerTemplate"
-#   just create-server server_name="dev-node" flake_location="github:myfork/myflake" flake_attribute="devConfig" server_type="cpx11"
-#   just create-server server_name="ipv4-server" enable_ipv4=true
-        temp_root_password={{temp_root_password}}
-create-server server_name flake_location=DEFAULT_FLAKE_LOCATION flake_attribute=DEFAULT_FLAKE_ATTRIBUTE server_type=DEFAULT_SERVER_TYPE image=DEFAULT_SERVER_IMAGE location=DEFAULT_SERVER_LOCATION ssh_key_name=DEFAULT_SSH_KEY_NAME network=DEFAULT_PRIVATE_NETWORK volume=DEFAULT_VOLUME_NAME firewall=DEFAULT_FIREWALL_NAME placement_group=DEFAULT_PLACEMENT_GROUP labels=DEFAULT_LABELS nixos_channel=DEFAULT_TARGET_NIXOS_CHANNEL target_hostname="" infisical_client_id=INFISICAL_BOOTSTRAP_CLIENT_ID_ENV infisical_client_secret=INFISICAL_BOOTSTRAP_CLIENT_SECRET_ENV infisical_address=INFISICAL_BOOTSTRAP_ADDRESS_ENV enable_ipv4="false":
-    #!/usr/bin/env bash
-    set -euo pipefail
+# --- Core Targets ---
 
-    # Fetch HCLOUD_TOKEN and export it so the helper script and its hcloud commands can use it
-    echo "Fetching HCLOUD_TOKEN..."
-    export HCLOUD_TOKEN=$(just _fetch_hcloud_token)
-    if [[ -z "$HCLOUD_TOKEN" ]]; then
-        echo "ERROR: HCLOUD_TOKEN could not be fetched. Aborting." >&2
-        exit 1
-    fi
-    echo "HCLOUD_TOKEN fetched and exported for helper script."
+# Check local dependencies
+check-deps:
+    @echo "Checking local dependencies..."
+    @{{SCRIPTS_DIR}}/deps_check.sh
 
-    # Ensure the helper script exists and is executable
-    HELPER_SCRIPT_PATH="./provision_hetzner_node.sh" # Assuming it's in the same directory as Justfile
-    if [[ ! -f "$HELPER_SCRIPT_PATH" ]]; then
-        echo "ERROR: Helper script '$HELPER_SCRIPT_PATH' not found." >&2
-        exit 1
-    fi
-    if [[ ! -x "$HELPER_SCRIPT_PATH" ]]; then
-        echo "ERROR: Helper script '$HELPER_SCRIPT_PATH' is not executable. Please chmod +x it." >&2
-        exit 1
-    fi
+# Provision a new server on Hetzner
+# Usage: just provision server_name="my-server" flake_uri="github:user/flake#host" [deploy_method="convert"] [server_type="cpx21"] ...
+provision server_name flake_uri \
+    deploy_method=DEFAULT_DEPLOY_METHOD \
+    server_type=DEFAULT_HETZNER_SERVER_TYPE \
+    base_image=DEFAULT_HETZNER_BASE_IMAGE \
+    location=DEFAULT_HETZNER_LOCATION \
+    ssh_key_name=DEFAULT_HETZNER_SSH_KEY_NAME \
+    nixos_channel=DEFAULT_NIXOS_CHANNEL_ENV \
+    target_hostname_init=DEFAULT_HOSTNAME_INIT_ENV \
+    timezone_init=DEFAULT_TIMEZONE_INIT_ENV \
+    locale_lang_init=DEFAULT_LOCALE_LANG_INIT_ENV \
+    state_version_init=DEFAULT_STATE_VERSION_INIT_ENV \
+    infisical_client_id=DEFAULT_INFISICAL_CLIENT_ID \
+    infisical_client_secret=DEFAULT_INFISICAL_CLIENT_SECRET \
+    infisical_bootstrap_address=DEFAULT_INFISICAL_BOOTSTRAP_ADDRESS: _check_hcloud_token _check_hetzner_ssh_key check-deps
+    @echo "Attempting to provision server '{{server_name}}'..."
+    @echo "  Flake URI: {{flake_uri}}"
+    @echo "  Deployment Method: {{deploy_method}}"
+    @echo "  Server Type: {{server_type}}"
+    @echo "  Base Image (for conversion): {{base_image}}"
+    @echo "  Location: {{location}}"
+    @echo "  SSH Key Name (Hetzner): {{ssh_key_name}}"
 
-    # Call the external helper script, passing all parameters
-    # The helper script will handle default logic for optional cloud-init env vars
-    echo "Calling helper script: $HELPER_SCRIPT_PATH with Infisical bootstrap parameters"
-    "$HELPER_SCRIPT_PATH" \
-        {{server_name}} \
-        {{flake_location}} \
-        {{flake_attribute}} \
-        {{server_type}} \
-        {{image}} \
-        {{location}} \
-        {{ssh_key_name}} \
-        {{network}} \
-        {{volume}} \
-        {{firewall}} \
-        {{placement_group}} \
-        {{labels}} \
-        {{nixos_channel}} \
-        {{target_hostname}} \
-        "{{NIXOS_EVERYWHERE_LOCAL_PATH}}" \
-        "{{NIXOS_EVERYWHERE_REMOTE_URL}}" \
-        "{{DEFAULT_TARGET_HOSTNAME_BASE}}" \
-        "{{DEFAULT_TARGET_TIMEZONE}}" \
-        "{{DEFAULT_TARGET_LOCALE}}" \
-        "{{DEFAULT_TARGET_STATE_VERSION}}" \
-        {{infisical_client_id}} \
-        {{infisical_client_secret}} \
-        {{infisical_address}} \
-        {{enable_ipv4}}
-    # The exit code of the helper script will be the exit code of this recipe
+    # Export variables for hetzner_provision.sh
+    @export HCLOUD_TOKEN="{{HCLOUD_TOKEN}}"; \
+    export HETZNER_SERVER_NAME="{{server_name}}"; \
+    export HETZNER_SERVER_TYPE="{{server_type}}"; \
+    export HETZNER_BASE_IMAGE="{{base_image}}"; \
+    export HETZNER_LOCATION="{{location}}"; \
+    export HETZNER_SSH_KEY_NAME="{{ssh_key_name}}"; \
+    export NIXOS_FLAKE_URI="{{flake_uri}}"; \
+    # NIXOS_FLAKE_HOST_ATTR is derived from flake_uri in the script
+    export DEPLOY_METHOD="{{deploy_method}}"; \
+    export NIXOS_CHANNEL_ENV="{{nixos_channel}}"; \
+    export HOSTNAME_INIT_ENV="{{target_hostname_init}}"; \
+    export TIMEZONE_INIT_ENV="{{timezone_init}}"; \
+    export LOCALE_LANG_INIT_ENV="{{locale_lang_init}}"; \
+    export STATE_VERSION_INIT_ENV="{{state_version_init}}"; \
+    export INFISICAL_CLIENT_ID="{{infisical_client_id}}"; \
+    export INFISICAL_CLIENT_SECRET="{{infisical_client_secret}}"; \
+    export INFISICAL_BOOTSTRAP_ADDRESS="{{infisical_bootstrap_address}}"; \
+    {{SCRIPTS_DIR}}/hetzner_provision.sh
 
-list-servers: _fetch_hcloud_token
-    #!/usr/bin/env bash
-    set -euo pipefail
-    # Fetch token and set it for the hcloud command
-    HETZNER_API_TOKEN_VAL=$(just _fetch_hcloud_token)
-    HCLOUD_TOKEN="$HETZNER_API_TOKEN_VAL" hcloud server list -o noheader -o columns=id,name,status,ipv4,ipv6,location,server_type
+# Destroy a server on Hetzner
+# Usage: just destroy server_name="my-server"
+destroy server_name: _check_hcloud_token
+    @echo "Attempting to destroy server '{{server_name}}'..."
+    @HCLOUD_TOKEN="{{HCLOUD_TOKEN}}" hcloud server delete "{{server_name}}" \
+        || echo "Failed to delete server '{{server_name}}'. It might not exist or an error occurred."
 
-# Creates a populated version of nixos-everywhere.sh with variables filled in
-# The populated script is saved to the "populated" directory
-create-populated-script flake_location=DEFAULT_FLAKE_LOCATION flake_attribute=DEFAULT_FLAKE_ATTRIBUTE nixos_channel=DEFAULT_TARGET_NIXOS_CHANNEL target_hostname=DEFAULT_TARGET_HOSTNAME_BASE target_timezone=DEFAULT_TARGET_TIMEZONE target_locale=DEFAULT_TARGET_LOCALE target_state_version=DEFAULT_TARGET_STATE_VERSION ssh_keys=DEFAULT_SSH_KEY:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    
-    # Create populated directory if it doesn't exist
-    mkdir -p populated
-    
-    # Add populated directory to .gitignore if not already there
-    if ! grep -q "^populated$" .gitignore 2>/dev/null; then
-        echo "populated" >> .gitignore
-        echo "Added 'populated' to .gitignore"
-    fi
-    
-    # Copy the original script
-    cp "{{NIXOS_EVERYWHERE_LOCAL_PATH}}" populated/nixos-everywhere-populated.sh
-    chmod +x populated/nixos-everywhere-populated.sh
-    
-    # Replace environment variables with actual values - using awk for better handling of special characters
-    awk -v flake="{{flake_location}}#{{flake_attribute}}" '{gsub(/^FLAKE_URI_INPUT="\${FLAKE_URI:-}"$/, "FLAKE_URI_INPUT=\"" flake "\""); print}' populated/nixos-everywhere-populated.sh > populated/temp.sh && mv populated/temp.sh populated/nixos-everywhere-populated.sh
-    
-    awk -v channel={{nixos_channel}} '{gsub(/^NIXOS_CHANNEL_ENV="\${NIXOS_CHANNEL:-nixos-24.11}"$/, "NIXOS_CHANNEL_ENV=\"" channel "\""); print}' populated/nixos-everywhere-populated.sh > populated/temp.sh && mv populated/temp.sh populated/nixos-everywhere-populated.sh
-    
-    awk -v hostname={{target_hostname}} '{gsub(/^HOSTNAME_INIT_ENV="\${HOSTNAME_INIT:-\$\(hostname -s 2>\/dev\/null \|\| echo "nixos-node"\)}"$/, "HOSTNAME_INIT_ENV=\"" hostname "\""); print}' populated/nixos-everywhere-populated.sh > populated/temp.sh && mv populated/temp.sh populated/nixos-everywhere-populated.sh
-    
-    awk -v timezone="{{target_timezone}}" '{gsub(/^TIMEZONE_INIT_ENV="\${TIMEZONE_INIT:-Etc\/UTC}"$/, "TIMEZONE_INIT_ENV=\"" timezone "\""); print}' populated/nixos-everywhere-populated.sh > populated/temp.sh && mv populated/temp.sh populated/nixos-everywhere-populated.sh
-    
-    awk -v locale="{{target_locale}}" '{gsub(/^LOCALE_LANG_INIT_ENV="\${LOCALE_LANG_INIT:-en_US.UTF-8}"$/, "LOCALE_LANG_INIT_ENV=\"" locale "\""); print}' populated/nixos-everywhere-populated.sh > populated/temp.sh && mv populated/temp.sh populated/nixos-everywhere-populated.sh
-    
-    awk -v version="{{target_state_version}}" '{gsub(/^STATE_VERSION_INIT_ENV="\${STATE_VERSION_INIT:-24.11}"$/, "STATE_VERSION_INIT_ENV=\"" version "\""); print}' populated/nixos-everywhere-populated.sh > populated/temp.sh && mv populated/temp.sh populated/nixos-everywhere-populated.sh
-    
-    # Handle SSH keys - if provided
-    if [[ -n "{{ssh_keys}}" ]]; then
-        # Use awk for better handling of special characters
-        awk -v keys="{{ssh_keys}}" '{gsub(/^SSH_AUTHORIZED_KEYS_INPUT="\${SSH_AUTHORIZED_KEYS:-}"$/, "SSH_AUTHORIZED_KEYS_INPUT=\"" keys "\""); print}' populated/nixos-everywhere-populated.sh > populated/temp.sh && mv populated/temp.sh populated/nixos-everywhere-populated.sh
-    fi
-    
-    echo "Created populated script at populated/nixos-everywhere-populated.sh"
-    echo "Variables populated:"
-    echo "  FLAKE_URI: {{flake_location}}#{{flake_attribute}}"
-    echo "  NIXOS_CHANNEL: {{nixos_channel}}"
-    echo "  HOSTNAME_INIT: {{target_hostname}}"
-    echo "  TIMEZONE_INIT: {{target_timezone}}"
-    echo "  LOCALE_LANG_INIT: {{target_locale}}"
-    echo "  STATE_VERSION_INIT: {{target_state_version}}"
-    if [[ -n "{{ssh_keys}}" ]]; then
-        echo "  SSH_AUTHORIZED_KEYS: (custom value provided)"
-    else
-        echo "  SSH_AUTHORIZED_KEYS: (not populated - must be provided at runtime)"
-    fi
+# SSH into a provisioned server
+# Usage: just ssh server_name="my-server" [ssh_user="root"]
+ssh server_name ssh_user=DEFAULT_NIXOS_SSH_USER: _check_hcloud_token
+    @echo "Attempting to SSH into server '{{server_name}}' as user '{{ssh_user}}'..."
+    @SERVER_IP=$$(HCLOUD_TOKEN="{{HCLOUD_TOKEN}}" hcloud server ip "{{server_name}}"); \
+    if [ -z "$$SERVER_IP" ]; then \
+        echo "Error: Could not retrieve IP address for server '{{server_name}}'."; \
+        echo "Ensure the server exists and is running."; \
+        exit 1; \
+    fi; \
+    echo "Connecting to $$SERVER_IP..."; \
+    ssh {{ssh_user}}@$$SERVER_IP
 
-# Creates a server with IPv4 enabled
-# This is a simple wrapper around create-server with enable_ipv4=true
-        temp_root_password={{temp_root_password}}
-create-server-ipv4 server_name flake_location=DEFAULT_FLAKE_LOCATION flake_attribute=DEFAULT_FLAKE_ATTRIBUTE server_type=DEFAULT_SERVER_TYPE image=DEFAULT_SERVER_IMAGE location=DEFAULT_SERVER_LOCATION ssh_key_name=DEFAULT_SSH_KEY_NAME network=DEFAULT_PRIVATE_NETWORK volume=DEFAULT_VOLUME_NAME firewall=DEFAULT_FIREWALL_NAME placement_group=DEFAULT_PLACEMENT_GROUP labels=DEFAULT_LABELS nixos_channel=DEFAULT_TARGET_NIXOS_CHANNEL target_hostname="" infisical_client_id=INFISICAL_BOOTSTRAP_CLIENT_ID_ENV infisical_client_secret=INFISICAL_BOOTSTRAP_CLIENT_SECRET_ENV infisical_address=INFISICAL_BOOTSTRAP_ADDRESS_ENV:
-    @just create-server \
-        server_name={{server_name}} \
-        flake_location={{flake_location}} \
-        flake_attribute={{flake_attribute}} \
-        server_type={{server_type}} \
-        image={{image}} \
-        location={{location}} \
-        ssh_key_name={{ssh_key_name}} \
-        network={{network}} \
-        volume={{volume}} \
-        firewall={{firewall}} \
-        placement_group={{placement_group}} \
-        labels={{labels}} \
-        nixos_channel={{nixos_channel}} \
-        target_hostname={{target_hostname}} \
-        infisical_client_id={{infisical_client_id}} \
-        infisical_client_secret={{infisical_client_secret}} \
-        infisical_address={{infisical_address}} \
-        enable_ipv4=true
-        temp_root_password={{temp_root_password}}
+# Fetch cloud-init logs from a server
+# Usage: just logs server_name="my-server" [ssh_user="root"]
+logs server_name ssh_user=DEFAULT_NIXOS_SSH_USER: _check_hcloud_token
+    @echo "Fetching cloud-init logs from server '{{server_name}}'..."
+    @SERVER_IP=$$(HCLOUD_TOKEN="{{HCLOUD_TOKEN}}" hcloud server ip "{{server_name}}"); \
+    if [ -z "$$SERVER_IP" ]; then \
+        echo "Error: Could not retrieve IP address for server '{{server_name}}'."; \
+        exit 1; \
+    fi; \
+    echo "Connecting to $$SERVER_IP to fetch logs..."; \
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null {{ssh_user}}@$$SERVER_IP \
+        "echo '--- /var/log/cloud-init-output.log ---'; sudo cat /var/log/cloud-init-output.log || echo 'Failed to cat /var/log/cloud-init-output.log'; \
+         echo '\n--- /var/log/nixos-conversion-detailed.log (if convert method used) ---'; sudo cat /var/log/nixos-conversion-detailed.log || echo 'No nixos-conversion-detailed.log found.'; \
+         echo '\n--- /var/log/nixos-everywhere.log (if conversion script created it) ---'; sudo cat /var/log/nixos-everywhere.log || echo 'No nixos-everywhere.log found.'; \
+         echo '\n--- journalctl -u cloud-init ---'; sudo journalctl -u cloud-init --no-pager -n 50 || echo 'Failed to get cloud-init journal.'; \
+         echo '\n--- journalctl -u cloud-final ---'; sudo journalctl -u cloud-final --no-pager -n 50 || echo 'Failed to get cloud-final journal.'"
 
-# Creates a server with IPv4 enabled and volume attached
-# This is a direct approach using hcloud CLI
-hcloud-server-ipv4 server_name="k3s-control-01" server_type=DEFAULT_SERVER_TYPE image=DEFAULT_SERVER_IMAGE location=DEFAULT_SERVER_LOCATION ssh_key_name=DEFAULT_SSH_KEY_NAME volume_name=DEFAULT_VOLUME_NAME:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    
-    # Create a simple cloud-init file with SSH key
-    echo "Creating cloud-init configuration..."
-    echo "#cloud-config" > /tmp/cloud-init.yaml
-    echo "ssh_pwauth: false" >> /tmp/cloud-init.yaml
-    echo "disable_root: false" >> /tmp/cloud-init.yaml
-    echo "users:" >> /tmp/cloud-init.yaml
-    echo "  - name: root" >> /tmp/cloud-init.yaml
-    echo "    ssh_authorized_keys:" >> /tmp/cloud-init.yaml
-    echo "      - {{DEFAULT_SSH_KEY}}" >> /tmp/cloud-init.yaml
-    
-    # Fetch token
-    echo "Fetching HCLOUD_TOKEN..."
-    HCLOUD_TOKEN=$(just _fetch_hcloud_token)
-    
-    # Create the server
-    echo "Creating server {{server_name}} with IPv4 enabled and volume {{volume_name}} attached..."
-    HCLOUD_TOKEN="$HCLOUD_TOKEN" hcloud server create \
-      --name {{server_name}} \
-      --type {{server_type}} \
-      --image {{image}} \
-      --location {{location}} \
-      --ssh-key {{ssh_key_name}} \
-      --volume "{{volume_name}}" \
-      --user-data-from-file /tmp/cloud-init.yaml
-    
-    # Clean up
-    rm -f /tmp/cloud-init.yaml
-    
-    # Get IP
-    SERVER_IP=$(HCLOUD_TOKEN="$HCLOUD_TOKEN" hcloud server ip {{server_name}})
-    echo "Server {{server_name}} created with IP: $SERVER_IP"
-    echo "You can connect with: ssh root@$SERVER_IP"
+# List active Hetzner servers
+list-servers: _check_hcloud_token
+    @echo "Listing Hetzner Cloud servers..."
+    @HCLOUD_TOKEN="{{HCLOUD_TOKEN}}" hcloud server list
 
+# Default target: List available recipes
 default:
-    @just -l
+    @just --list
+    @echo "\nCommon Workflows:"
+    @echo "  1. Ensure .env is configured with HCLOUD_TOKEN and HETZNER_SSH_KEY_NAME_OR_FINGERPRINT."
+    @echo "  2. Check dependencies: just check-deps"
+    @echo "  3. Provision a server: just provision server_name=\"my-test\" flake_uri=\"github:your/flake#host\""
+    @echo "  4. Monitor logs: just logs server_name=\"my-test\""
+    @echo "  5. SSH into server: just ssh server_name=\"my-test\""
+    @echo "  6. Destroy server: just destroy server_name=\"my-test\""

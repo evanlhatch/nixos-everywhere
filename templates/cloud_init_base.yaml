@@ -1,0 +1,72 @@
+#cloud-config
+# templates/cloud_init_base.yaml
+# Base cloud-init configuration.
+# Placeholders like ${NIXOS_FLAKE_URI}, ${NIXOS_FLAKE_HOST_ATTR}, ${SSH_AUTHORIZED_KEYS_CONTENT},
+# ${INFISICAL_CLIENT_ID}, ${EXECUTION_SCRIPT_CONTENT_BASE64}, ${NIXOS_EVERYWHERE_SCRIPT_URL_FOR_CLOUDINIT}
+# will be substituted by cloud_init_generator.sh.
+
+# Set initial hostname (will be overridden by NixOS)
+hostname: ${NIXOS_FLAKE_HOST_ATTR}-init # Provides a hint during early boot
+manage_etc_hosts: true
+
+# Configure the root user with the provided SSH key for initial access/debugging if needed.
+# The NixOS configuration (via nixos-everywhere.sh) will set up SSH for the final system.
+users:
+  - name: root
+    sudo: ALL=(ALL) NOPASSWD:ALL # Ensure root can sudo if not already default
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - "${SSH_AUTHORIZED_KEYS_CONTENT}" # Content of the public key(s)
+
+# Ensure essential packages for the execution script (nixos_convert_on_debian.sh)
+# and nixos-everywhere.sh are present on the Debian/Ubuntu host.
+# nixos-everywhere.sh also has its own dependency checks.
+package_update: true
+package_upgrade: true
+packages:
+  - curl
+  - git
+  - sudo
+  - base64 # Required if embedding scripts
+  # Add other minimal dependencies if nixos-everywhere.sh relies on them before its own ensure_command
+  # For example, `ca-certificates` for curl to HTTPS URLs. Most cloud images have this.
+
+runcmd:
+  - |
+    #!/bin/bash
+    # This script block is dynamically populated by cloud_init_generator.sh
+    # It will contain the content of nixos_convert_on_debian.sh or nixos_install_direct.sh
+
+    # Export variables that the embedded execution script will need.
+    # These are substituted by cloud_init_generator.sh.
+    export NIXOS_FLAKE_URI="${NIXOS_FLAKE_URI}"
+    export NIXOS_FLAKE_HOST_ATTR="${NIXOS_FLAKE_HOST_ATTR}"
+    export NIXOS_CHANNEL_ENV="${NIXOS_CHANNEL_ENV}"
+    export HOSTNAME_INIT_ENV="${HOSTNAME_INIT_ENV}"
+    export TIMEZONE_INIT_ENV="${TIMEZONE_INIT_ENV}"
+    export LOCALE_LANG_INIT_ENV="${LOCALE_LANG_INIT_ENV}"
+    export STATE_VERSION_INIT_ENV="${STATE_VERSION_INIT_ENV}"
+    export SSH_AUTHORIZED_KEYS_CONTENT_FOR_SCRIPT="${SSH_AUTHORIZED_KEYS_CONTENT}" # Pass the raw keys
+    
+    # Infisical Credentials
+    export INFISICAL_CLIENT_ID_FOR_FLAKE="${INFISICAL_CLIENT_ID}"
+    export INFISICAL_CLIENT_SECRET_FOR_FLAKE="${INFISICAL_CLIENT_SECRET}"
+    export INFISICAL_BOOTSTRAP_ADDRESS_FOR_FLAKE="${INFISICAL_BOOTSTRAP_ADDRESS}"
+
+    # Variables to control how nixos-everywhere.sh is obtained by nixos_convert_on_debian.sh
+    export NIXOS_EVERYWHERE_EMBEDDED_BASE64="${NIXOS_EVERYWHERE_EMBEDDED_BASE64}" # Will be empty if not embedding
+    export NIXOS_EVERYWHERE_SCRIPT_URL="${NIXOS_EVERYWHERE_SCRIPT_URL_FOR_CLOUDINIT}" # Will be empty if not downloading via URL
+
+    # --- Embedded Execution Script Content (e.g., content of nixos_convert_on_debian.sh) ---
+    # This placeholder is replaced by the actual script content by cloud_init_generator.sh
+    ${EXECUTION_SCRIPT_CONTENT_BASE64}
+    # --- End of Embedded Execution Script Content ---
+
+# Final action, e.g., reboot.
+# This is often handled by nixos-everywhere.sh or nixos-install themselves.
+# If they don't, or if you want cloud-init to enforce it:
+# power_state:
+#   mode: reboot
+#   message: Cloud-init runcmd finished. System rebooting into NixOS.
+#   timeout: 120 # seconds
+#   condition: True # Always reboot after runcmd
