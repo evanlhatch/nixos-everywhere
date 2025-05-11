@@ -184,10 +184,9 @@ let
     # Case 1: User's flake exports a `nixosModules.\${flakeAttrKeyFromEnv}` (recommended convention)
     if builtins.hasAttr "nixosModules" userFlakeSource && builtins.hasAttr flakeAttrKeyFromEnv userFlakeSource.nixosModules then
       userFlakeSource.nixosModules."\${flakeAttrKeyFromEnv}"
-    # Case 2: Specific handling for "github:evanlhatch/k3s-nixos-config#hetznerK3sControlTemplate"
-    # We know its main module is at path "/nixos/hetzner/k3s-control-template" within the flake.
-    else if flakeUrlFromEnv == "github:evanlhatch/k3s-nixos-config" && flakeAttrKeyFromEnv == "hetznerK3sControlTemplate" then
-      userFlakeSource + "/nixos/hetzner/k3s-control-template" # This results in a path to the module directory
+    # Case 2: Check if the flake has a nixosConfigurations attribute with the given name
+    else if builtins.hasAttr "nixosConfigurations" userFlakeSource && builtins.hasAttr flakeAttrKeyFromEnv userFlakeSource.nixosConfigurations then
+      userFlakeSource.nixosConfigurations."\${flakeAttrKeyFromEnv}"
     # Case 3: User's flake exports the module directly as `userFlakeSource.\${flakeAttrKeyFromEnv}`
     # This requires the attribute itself to be the module definition.
     else if builtins.isAttrs userFlakeSource."\${flakeAttrKeyFromEnv}" &&
@@ -200,7 +199,7 @@ let
             ) then
        userFlakeSource."\${flakeAttrKeyFromEnv}" # This might be too broad or risky if it's not a module
     else
-      abort "Cannot determine user module. Flake '\${flakeUrlFromEnv}' should expose its main module for '\${flakeAttrKeyFromEnv}' under 'nixosModules.\${flakeAttrKeyFromEnv}', or as a direct attribute containing the module, or the script needs a specific handler for this flake. The attribute '\${flakeAttrKeyFromEnv}' does not point to a recognized module source.";
+      abort "Cannot determine user module. Flake '\${flakeUrlFromEnv}' should expose its main module for '\${flakeAttrKeyFromEnv}' under 'nixosModules.\${flakeAttrKeyFromEnv}', as a nixosConfigurations.\${flakeAttrKeyFromEnv}, or as a direct attribute containing the module. The attribute '\${flakeAttrKeyFromEnv}' does not point to a recognized module source.";
 
   sshKeysFromEnv = builtins.getEnv "SSH_AUTHORIZED_KEYS_FOR_NIX";
   parsedSshKeys = lib.filter (key: key != "") (lib.splitString "\\n" sshKeysFromEnv);

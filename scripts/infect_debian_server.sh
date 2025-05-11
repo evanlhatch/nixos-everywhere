@@ -34,7 +34,8 @@ if [ -z "${INFECT_NIXOS_SSH_KEYS}" ]; then
 fi
 
 # --- Script Configuration ---
-NIXOS_EVERYWHERE_SCRIPT_URL="https://raw.githubusercontent.com/evanlhatch/nixos-everywhere/main/scripts/nixos_everywhere.sh"
+# Use the correct GitHub URL for the script
+NIXOS_EVERYWHERE_SCRIPT_URL="https://raw.githubusercontent.com/evanlhatch/nixos-everywhere/refactor-v3/scripts/nixos_everywhere.sh"
 
 # --- Construct Remote Command ---
 REMOTE_COMMAND=$(cat <<EOF
@@ -138,6 +139,7 @@ echo "    Script URL: ${NIXOS_EVERYWHERE_SCRIPT_URL}"
 # echo "    REMOTE COMMAND THAT WOULD RUN:" # Commented out for live run
 # echo "${REMOTE_COMMAND}" # Commented out for live run
 
+# Execute the remote command
 ssh -t "${INFECT_SSH_USER}@${INFECT_SERVER_IP}" "${REMOTE_COMMAND}"
 
 echo ">>> Infection command sent to ${INFECT_SERVER_IP}."
