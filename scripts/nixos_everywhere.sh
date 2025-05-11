@@ -241,6 +241,29 @@ EOFBRIDGE
         log "ERROR" "Nixpkgs channel path ${nixpkgs_path_for_eval} does not exist."; ls -la /root/.nix-defexpr/channels/ || true; log "NIX_PATH: ${NIX_PATH:-}"; nix-channel --list || true; exit 1;
     fi
     log "INFO" "Attempting evaluation with NIX_PATH and -I pointing to ${nixpkgs_path_for_eval}";
+    log "INFO" "ENV_FLAKE_URL: ${ENV_FLAKE_URL}";
+    log "INFO" "ENV_FLAKE_ATTR_NAME: ${ENV_FLAKE_ATTR_NAME}";
+    
+    # Try to fetch the flake to see if it exists
+    log "INFO" "Testing flake fetch...";
+    if nix flake metadata "${ENV_FLAKE_URL}" &> "$eval_check_log.flake_metadata"; then
+        log "INFO" "Flake fetch successful.";
+        cat "$eval_check_log.flake_metadata";
+    else
+        log "ERROR" "Flake fetch FAILED. Details in $eval_check_log.flake_metadata";
+        cat "$eval_check_log.flake_metadata";
+    fi
+    
+    # Try to list the flake outputs
+    log "INFO" "Testing flake outputs...";
+    if nix flake show "${ENV_FLAKE_URL}" &> "$eval_check_log.flake_show"; then
+        log "INFO" "Flake show successful.";
+        cat "$eval_check_log.flake_show";
+    else
+        log "ERROR" "Flake show FAILED. Details in $eval_check_log.flake_show";
+        cat "$eval_check_log.flake_show";
+    fi
+    
     if NIX_PATH="nixpkgs=${nixpkgs_path_for_eval}:${NIX_PATH:-}" nix eval --option sandbox false -I nixpkgs="${nixpkgs_path_for_eval}" --impure --raw --expr "(import <nixpkgs/nixos> { configuration = /etc/nixos/configuration.nix; }).system.outPath" &> "$eval_check_log"; then
         log "INFO" "NixOS configuration evaluation check successful.";
     else
