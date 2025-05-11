@@ -38,6 +38,80 @@ NIXOS_EVERYWHERE_SCRIPT_URL="https://raw.githubusercontent.com/evanlhatch/nixos-
 
 # --- Construct Remote Command ---
 REMOTE_COMMAND=$(cat <<EOF
+#!/usr/bin/env bash
+set -e
+echo ">>> REMOTE COMMAND SCRIPT STARTED ON SERVER <<<"
+
+echo ">>> Phase 1: Attempting to stop Nix services (if they exist)..."
+if command -v systemctl &>/dev/null; then
+    echo "DEBUG: About to stop nix-daemon.socket"
+    systemctl stop nix-daemon.socket || echo " (DEBUG: nix-daemon.socket not active or failed to stop)"
+    echo "DEBUG: About to stop nix-daemon.service"
+    systemctl stop nix-daemon.service || echo " (DEBUG: nix-daemon.service not active or failed to stop)"
+    echo "DEBUG: About to disable nix-daemon.socket"
+    systemctl disable nix-daemon.socket || echo " (DEBUG: Failed to disable nix-daemon.socket)"
+    echo "DEBUG: About to disable nix-daemon.service"
+    systemctl disable nix-daemon.service || echo " (DEBUG: Failed to disable nix-daemon.service)"
+    echo "DEBUG: About to sleep 2 seconds..."
+    sleep 2
+    echo "DEBUG: Sleep complete."
+else
+    echo "systemctl not found, skipping service stops."
+fi
+echo ">>> Phase 1 complete."
+
+echo ">>> Phase 2: Attempting to kill lingering Nix processes (if any)..."
+# Temporarily commenting out pkill to see if this is the cause of disconnect
+# echo "Executing: pkill -f '/nix/store/.*/bin/nix'"
+# pkill -f '/nix/store/.*/bin/nix' || echo " (No running Nix processes found by pkill or pkill failed)"
+# echo "Executing: pkill -f 'nix-daemon'"
+# pkill -f 'nix-daemon' || echo " (No running nix-daemon processes found by pkill or pkill failed)"
+echo "SKIPPED pkill commands for this debug run."
+sleep 1
+echo ">>> Phase 2 complete."
+
+echo ">>> Phase 3: Cleaning up stale Nix profile/backup files..."
+echo "Removing /etc/bashrc.backup-before-nix..."
+rm -f /etc/bashrc.backup-before-nix
+echo "Removing /etc/bash.bashrc.backup-before-nix..."
+rm -f /etc/bash.bashrc.backup-before-nix
+echo "Removing /etc/zshrc.backup-before-nix..."
+rm -f /etc/zshrc.backup-before-nix
+echo "Removing /etc/profile.backup-before-nix..."
+rm -f /etc/profile.backup-before-nix
+echo "Removing /etc/profile.d/nix.sh.backup-before-nix..."
+rm -f /etc/profile.d/nix.sh.backup-before-nix
+echo "Removing /etc/profile.d/nix.sh..."
+rm -f /etc/profile.d/nix.sh
+echo "Removing /root/.bashrc.backup-before-nix..."
+rm -f /root/.bashrc.backup-before-nix
+echo "Removing /root/.zshrc.backup-before-nix..."
+rm -f /root/.zshrc.backup-before-nix
+echo "Removing /root/.profile.backup-before-nix..."
+rm -f /root/.profile.backup-before-nix
+echo "Removing Nix systemd unit files..."
+rm -f /etc/systemd/system/nix-daemon.service /etc/systemd/system/nix-daemon.socket
+echo "Removing Nix tmpfiles.d config..."
+rm -f /etc/tmpfiles.d/nix-daemon.conf
+echo "Removing Nix user profiles from /root..."
+rm -rf /root/.nix-profile /root/.nix-defexpr /root/.nix-channels
+echo ">>> Phase 3 complete."
+
+echo ">>> Phase 4: Checking /nix mountpoint (no action taken for now)..."
+# Temporarily commenting out umount
+# if mountpoint -q /nix; then
+#     echo "Attempting to unmount /nix..."
+#     umount -l /nix || echo "/nix was a mountpoint but unmount failed. Proceeding cautiously."
+# else
+#     echo "/nix is not a mountpoint."
+# fi
+echo "SKIPPED /nix umount check for this debug run."
+echo ">>> Phase 4 complete."
+
+echo ">>> Stale Nix file and process cleanup attempt (debug version) complete on remote server."
+echo ">>> Proceeding to export variables and run nixos-everywhere.sh..."
+
+# Original commands continue below
 export FLAKE_URI_INPUT='${INFECT_FLAKE_URI}'
 export SSH_AUTHORIZED_KEYS_INPUT='${INFECT_NIXOS_SSH_KEYS}'
 export NIXOS_CHANNEL_ENV='${INFECT_NIXOS_CHANNEL:-nixos-24.05}'
