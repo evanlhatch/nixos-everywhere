@@ -34,7 +34,7 @@ if [ -z "${INFECT_NIXOS_SSH_KEYS}" ]; then
 fi
 
 # --- Script Configuration ---
-NIXOS_EVERYWHERE_SCRIPT_URL="https://raw.githubusercontent.com/evanlhatch/nixos-everywhere/refactor-v3/scripts/nixos_everywhere.sh"
+NIXOS_EVERYWHERE_SCRIPT_URL="https://raw.githubusercontent.com/evanlhatch/nixos-everywhere/main/scripts/nixos_everywhere.sh"
 
 # --- Construct Remote Command ---
 REMOTE_COMMAND=$(cat <<EOF
