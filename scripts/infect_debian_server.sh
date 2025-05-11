@@ -34,8 +34,9 @@ if [ -z "${INFECT_NIXOS_SSH_KEYS}" ]; then
 fi
 
 # --- Script Configuration ---
-# Use the correct GitHub URL for the script
-NIXOS_EVERYWHERE_SCRIPT_URL="https://raw.githubusercontent.com/evanlhatch/nixos-everywhere/refactor-v3/scripts/nixos_everywhere.sh"
+# Use the local script instead of downloading from GitHub
+NIXOS_EVERYWHERE_SCRIPT_PATH="$(dirname "$(realpath "$0")")/nixos_everywhere.sh"
+REMOTE_SCRIPT_PATH="/tmp/nixos_everywhere.sh"
 
 # --- Construct Remote Command ---
 REMOTE_COMMAND=$(cat <<EOF
@@ -123,7 +124,9 @@ export STATE_VERSION_INIT_ENV='${INFECT_STATE_VERSION_INIT:-24.05}'
 export INFISICAL_CLIENT_ID_FOR_FLAKE='${INFECT_INFISICAL_CLIENT_ID:-}'
 export INFISICAL_CLIENT_SECRET_FOR_FLAKE='${INFECT_INFISICAL_CLIENT_SECRET:-}'
 export INFISICAL_ADDRESS_FOR_FLAKE='${INFECT_INFISICAL_BOOTSTRAP_ADDRESS:-https://app.infisical.com}'
-curl -L "${NIXOS_EVERYWHERE_SCRIPT_URL}" | bash 2>&1 | tee /var/log/nixos-everywhere-manual-infect.log
+# Force automatic reboot without prompting
+export FORCE_REBOOT="yes"
+bash "${REMOTE_SCRIPT_PATH}" 2>&1 | tee /var/log/nixos-everywhere-manual-infect.log
 EOF
 )
 
@@ -135,11 +138,16 @@ echo "    SSH User for infection: ${INFECT_SSH_USER}"
 echo "    NixOS Channel: ${INFECT_NIXOS_CHANNEL:-nixos-24.05}"
 
 echo ">>> Initiating infection on ${INFECT_SSH_USER}@${INFECT_SERVER_IP}."
-echo "    Script URL: ${NIXOS_EVERYWHERE_SCRIPT_URL}"
+echo "    Using local script: ${NIXOS_EVERYWHERE_SCRIPT_PATH}"
 # echo "    REMOTE COMMAND THAT WOULD RUN:" # Commented out for live run
 # echo "${REMOTE_COMMAND}" # Commented out for live run
 
-# Execute the remote command
+# First, copy the nixos_everywhere.sh script to the remote server
+echo ">>> Copying nixos_everywhere.sh to remote server..."
+scp "${NIXOS_EVERYWHERE_SCRIPT_PATH}" "${INFECT_SSH_USER}@${INFECT_SERVER_IP}:${REMOTE_SCRIPT_PATH}"
+ssh "${INFECT_SSH_USER}@${INFECT_SERVER_IP}" "chmod +x ${REMOTE_SCRIPT_PATH}"
+
+# Then execute the remote command
 ssh -t "${INFECT_SSH_USER}@${INFECT_SERVER_IP}" "${REMOTE_COMMAND}"
 
 echo ">>> Infection command sent to ${INFECT_SERVER_IP}."

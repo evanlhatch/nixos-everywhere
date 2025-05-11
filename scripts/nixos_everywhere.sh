@@ -112,7 +112,10 @@ main() {
     if ! command -v nix &>/dev/null; then
         log "INFO" "Nix not found. Installing Nix from ${NIX_INSTALL_SCRIPT_URL_ENV}...";
         NIX_INSTALLER_PATH="/tmp/nix_install.sh"; curl -sSL -f -o "$NIX_INSTALLER_PATH" "$NIX_INSTALL_SCRIPT_URL_ENV" || log "FATAL" "Failed to download Nix installer."
-        sh "$NIX_INSTALLER_PATH" --daemon --no-channel-add --no-modify-profile; rm -f "$NIX_INSTALLER_PATH"; log "INFO" "Nix installation script finished.";
+        # Use 'yes' command to provide automatic answers to prompts
+        # First 'n' for "Would you like to see a more detailed list of what I will do?"
+        # Then 'y' for any confirmation prompts
+        yes n | head -n 1 | sh "$NIX_INSTALLER_PATH" --daemon --no-channel-add --no-modify-profile; rm -f "$NIX_INSTALLER_PATH"; log "INFO" "Nix installation script finished.";
     fi
     if [[ -f '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]]; then . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'; log "INFO" "Sourced Nix daemon profile.";
     else log "WARN" "Nix daemon profile not found to source."; fi
@@ -183,23 +186,38 @@ let
   userMainModuleToImport =
     # Case 1: User's flake exports a `nixosModules.\${flakeAttrKeyFromEnv}` (recommended convention)
     if builtins.hasAttr "nixosModules" userFlakeSource && builtins.hasAttr flakeAttrKeyFromEnv userFlakeSource.nixosModules then
-      userFlakeSource.nixosModules."\${flakeAttrKeyFromEnv}"
+      userFlakeSource.nixosModules."${flakeAttrKeyFromEnv}"
     # Case 2: Check if the flake has a nixosConfigurations attribute with the given name
+    # We need to extract the module from the configuration, not use the configuration directly
     else if builtins.hasAttr "nixosConfigurations" userFlakeSource && builtins.hasAttr flakeAttrKeyFromEnv userFlakeSource.nixosConfigurations then
-      userFlakeSource.nixosConfigurations."\${flakeAttrKeyFromEnv}"
-    # Case 3: User's flake exports the module directly as `userFlakeSource.\${flakeAttrKeyFromEnv}`
+      # Extract the module from the configuration
+      let
+        config = userFlakeSource.nixosConfigurations."${flakeAttrKeyFromEnv}";
+        # If the configuration has a '_module.args' attribute, it's likely a module
+        # Otherwise, we need to extract the module from the configuration
+      in
+      if builtins.hasAttr "_module" config && builtins.hasAttr "args" config._module then
+        config
+      else if builtins.hasAttr "config" config && builtins.hasAttr "options" config then
+        config
+      else if builtins.hasAttr "modules" config then
+        # If the configuration has a 'modules' attribute, use the first module
+        builtins.head config.modules
+      else
+        abort "Cannot extract module from configuration '${flakeAttrKeyFromEnv}'. The configuration does not have the expected structure.";
+    # Case 3: User's flake exports the module directly as `userFlakeSource.${flakeAttrKeyFromEnv}`
     # This requires the attribute itself to be the module definition.
-    else if builtins.isAttrs userFlakeSource."\${flakeAttrKeyFromEnv}" &&
+    else if builtins.isAttrs userFlakeSource."${flakeAttrKeyFromEnv}" &&
             (builtins.elem true (map (x: x == flakeAttrKeyFromEnv) (builtins.attrNames userFlakeSource))) &&
             ( # Heuristic: check if it's a module-like structure, not a derivation
-              (builtins.hasAttr "config" userFlakeSource."\${flakeAttrKeyFromEnv}" && builtins.isAttrs userFlakeSource."\${flakeAttrKeyFromEnv}".config) ||
-              (builtins.hasAttr "options" userFlakeSource."\${flakeAttrKeyFromEnv}" && builtins.isAttrs userFlakeSource."\${flakeAttrKeyFromEnv}".options) ||
+              (builtins.hasAttr "config" userFlakeSource."${flakeAttrKeyFromEnv}" && builtins.isAttrs userFlakeSource."${flakeAttrKeyFromEnv}".config) ||
+              (builtins.hasAttr "options" userFlakeSource."${flakeAttrKeyFromEnv}" && builtins.isAttrs userFlakeSource."${flakeAttrKeyFromEnv}".options) ||
               # It could also be a function that returns such an attrset
-              (builtins.isFunction userFlakeSource."\${flakeAttrKeyFromEnv}")
+              (builtins.isFunction userFlakeSource."${flakeAttrKeyFromEnv}")
             ) then
-       userFlakeSource."\${flakeAttrKeyFromEnv}" # This might be too broad or risky if it's not a module
+       userFlakeSource."${flakeAttrKeyFromEnv}" # This might be too broad or risky if it's not a module
     else
-      abort "Cannot determine user module. Flake '\${flakeUrlFromEnv}' should expose its main module for '\${flakeAttrKeyFromEnv}' under 'nixosModules.\${flakeAttrKeyFromEnv}', as a nixosConfigurations.\${flakeAttrKeyFromEnv}, or as a direct attribute containing the module. The attribute '\${flakeAttrKeyFromEnv}' does not point to a recognized module source.";
+      abort "Cannot determine user module. Flake '${flakeUrlFromEnv}' should expose its main module for '${flakeAttrKeyFromEnv}' under 'nixosModules.${flakeAttrKeyFromEnv}', as a nixosConfigurations.${flakeAttrKeyFromEnv} with a valid module structure, or as a direct attribute containing the module. The attribute '${flakeAttrKeyFromEnv}' does not point to a recognized module source.";
 
   sshKeysFromEnv = builtins.getEnv "SSH_AUTHORIZED_KEYS_FOR_NIX";
   parsedSshKeys = lib.filter (key: key != "") (lib.splitString "\\n" sshKeysFromEnv);
