@@ -170,7 +170,7 @@ EOFNETWORK
     export LOCALE_LANG_FOR_NIX="${LOCALE_LANG_INIT_ENV}"; export STATE_VERSION_FOR_NIX="${STATE_VERSION_INIT_ENV}";
 
     # Corrected Nix expression for /etc/nixos/configuration.nix
-    cat > /etc/nixos/configuration.nix << EOFBRIDGE
+    cat > /etc/nixos/configuration.nix <<"EOFBRIDGE"
 { config, pkgs, lib, ... }:
 let
   flakeUrlFromEnv = builtins.getEnv "ENV_FLAKE_URL";
@@ -219,7 +219,7 @@ in {
   time.timeZone = lib.mkOptionDefault (getEnvOrDefault "TIMEZONE_FOR_NIX" null);
   i18n.defaultLocale = lib.mkOptionDefault (getEnvOrDefault "LOCALE_LANG_FOR_NIX" "en_US.UTF-8");
   i18n.supportedLocales = lib.mkOptionDefault [((getEnvOrDefault "LOCALE_LANG_FOR_NIX" "en_US.UTF-8") + "/UTF-8")];
-  system.stateVersion = lib.mkDefault (getEnvOrDefault "STATE_VERSION_FOR_NIX" "${STATE_VERSION_INIT_ENV}");
+  system.stateVersion = lib.mkDefault (getEnvOrDefault "STATE_VERSION_FOR_NIX" "24.11");
   console.enable = lib.mkDefault true;
 }
 EOFBRIDGE
